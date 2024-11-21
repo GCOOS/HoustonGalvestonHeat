@@ -1,0 +1,181 @@
+---
+title: "Actors Map Data Restructuring"
+author: "Renata Poulton Kamakura"
+date: "2024-11-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Look at data
+
+```{r read in data}
+DMdata <- read.csv("./DataModelers.csv")
+Stakeholders <- read.csv("./Stakeholders.csv")
+
+```
+
+## Basic Cleaning
+Have a bunch of rows you don't need
+```{r basic clean}
+##data modelers
+DMdata <- DMdata[!is.null(DMdata$Person.Group.Name),]
+
+##stakeholders
+Stakeholders <- Stakeholders[c(!is.null(Stakeholders$Organization.s.) &Stakeholders$Organization.s. !="") ,]
+
+###############Get some useful lists for the tables below
+
+##data modelers
+
+##stakeholders
+#get the actual list of stakeholder types
+StakeTypeNotes <- Stakeholders$Type.Notes
+StakeTypeNotes <- strsplit(StakeTypeNotes, ", ")
+
+#turn it into a list of unique types to reference
+sTypesUnique <- c()
+for (i in 1:length(StakeTypeNotes)){
+  rtypes <- StakeTypeNotes[[i]]
+  
+  #No type information
+  if (length(rtypes) == 0){
+    next
+  }
+  
+  #in case you have multiple values within a line
+  for (j in 1:length(rtypes)){
+    
+    #if already in the list
+    if (rtypes[j] %in% sTypesUnique){
+      next
+    
+    } else { #if not in the list, add it
+      sTypesUnique <- c(sTypesUnique, rtypes[j])
+    }
+  }
+  
+}
+
+##Keep track of spelling issues
+Incorrect_stk <- c("community", "resilience", "conservation", "Science and Education")
+Translate_stk <- c("Community", "Resilience", "Conservation/Restoration", "Education")
+
+##same idea but for locations
+StakeLocations <- Stakeholders$Region
+StakeLocations <- strsplit(StakeLocations, ", ")
+
+# #turn it into a list of unique types to reference
+# sLocUnique <- c()
+# for (i in 1:length(StakeLocations)){
+#   rlocs <- StakeLocations[[i]]
+#   
+#   #No location information
+#   if (length(rlocs) == 0){
+#     next
+#   }
+#   
+#   #in case you have multiple values within a line
+#   for (j in 1:length(rlocs)){
+#     
+#     #if already in the list
+#     if (rlocs[j] %in% sLocUnique){
+#       next
+#     
+#     } else { #if not in the list, add it
+#       sLocUnique <- c(sLocUnique, rlocs[j])
+#     }
+#   }
+#   
+# }
+
+##add states for the ones that are not states
+##note that the cities had states attached so don't need to add states for those
+
+#not doing anything with the cities right now, is a layer too complicated of a geography
+#CityLocs <- c("Houston", "Galveston", "New Orleans", "St. Petersburg", "Tampa", "Mobile")
+GCOOS_sts <- c("TX", "LA", "MS" ,"AL", "FL")
+SECOORA_sts <- c("FL", "GA", "SC", "NC")
+CARICOOS_sts <- c("PR", "VI")
+
+AllRA_sts <- unique(c(GCOOS_sts, SECOORA_sts, CARICOOS_sts))
+
+##For the future, if something says U.S. or Global I am just going to assign them to all the states.For Gulf of Mexico, going to assign it to GCOOS_sts
+
+```
+
+##Stakeholders
+This is the table of unique stakeholder data
+
+```{r stakeholder}
+Stk_table <- Stakeholders[,c("Organization.s.", "Contact.Type", "Contacted", "Last.Contacted")]
+Stk_table$ID <- 1:length(Stk_table$Organization.s.)
+
+```
+
+## Locations
+The main issue here is going to be plotting out the locations. My thought is to split the information into two tables, one that has the unique group data, and one that has a line per state per group. Then you can do a relate with an ID and that can translate between the two but not have a ton of duplicate information. 
+
+Not sure whether Tableau can do this kind of relate in the map, but worth a shot. Once this is set up, it would be easy to create a table that has all the data in one go
+
+```{r locations}
+##start from StakeLocations
+maxRows <- length(AllRA_sts) * length(StakeLocations)
+
+#create the storage table
+Loc_table <- as.data.frame(matrix(0, ncol=3, nrow=maxRows))
+names(Loc_table) <- c("LID", "SID", "State")
+
+RegionalNames <- c("Global", "U.S.", "Gulf of Mexico")
+
+#go through and fill out the table
+rw_iter <- 1
+for (i in 1:length(StakeLocations)){
+  rlocs <- StakeLocations[[i]]
+
+  #No location information
+  if (length(rlocs) == 0){
+    print(paste("Warning, no location for", Stakeholders$Organization.s.[i]))
+    next
+  }
+
+  #in case you have multiple values within a line
+  for (j in 1:length(rlocs)){
+    
+      ##check what the location type is
+      #AllRA_sts <- unique(c(GCOOS_sts, SECOORA_sts, CARICOOS_sts))
+      if (rlocs[j] %in% AllRA_sts){
+        Loc_table$LID[rw_iter] <- rw_iter
+        Loc_table$SID[rw_iter] <- Stk_table$ID[i] #get the stakeholder ID
+        Loc_table$State[rw_iter] <- rlocs[j]
+      } else if (rlocs[j] %in% RegionalNames){ #if it covers the whole area
+        
+        if (rlocs[j] == "Gulf of Mexico") {#just GCOOS area
+        
+        } else {
+          
+          
+        }
+        
+      } else{ #skip it because it is presumably a city/state that is not relevant to us rn
+        next
+      }
+
+      
+  }
+
+  
+  
+}
+
+```
+
+##Types
+This is the table with all the unique type stakeholder combinations
+```{r types}
+
+```
+
+
