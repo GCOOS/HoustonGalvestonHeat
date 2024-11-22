@@ -12,17 +12,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Look at data
 
 ```{r read in data}
-DMdata <- read.csv("./DataModelers.csv")
-Stakeholders <- read.csv("./Stakeholders.csv")
+DMdata <- read.csv("../01Data/DataModelers.csv")
+Stakeholders <- read.csv("../01Data/Stakeholders.csv")
 
 ```
 
-## Basic Cleaning
+## Basic Cleaning - Stakeholders
 Have a bunch of rows you don't need
-```{r basic clean}
-##data modelers
-DMdata <- DMdata[!is.null(DMdata$Person.Group.Name),]
-
+```{r basic clean stakeholders}
 ##stakeholders
 Stakeholders <- Stakeholders[c(!is.null(Stakeholders$Organization.s.) &Stakeholders$Organization.s. !="") ,]
 
@@ -110,9 +107,10 @@ AllRA_sts <- unique(c(GCOOS_sts, SECOORA_sts, CARICOOS_sts))
 This is the table of unique stakeholder data
 
 ```{r stakeholder}
-Stk_table <- Stakeholders[,c("Organization.s.", "Contact.Type", "Contacted", "Last.Contacted")]
-Stk_table$ID <- 1:length(Stk_table$Organization.s.)
+Stk_table <- Stakeholders[,c("Organization.s.", "Contact.Type", "Region", "Contacted", "Last.Contacted")]
+Stk_table$SID <- 1:length(Stk_table$Organization.s.)
 
+write.csv(Stk_table, "../01Data/Processed/Stakeholder_Info.csv")
 ```
 
 ## Locations
@@ -120,7 +118,7 @@ The main issue here is going to be plotting out the locations. My thought is to 
 
 Not sure whether Tableau can do this kind of relate in the map, but worth a shot. Once this is set up, it would be easy to create a table that has all the data in one go
 
-```{r locations}
+```{r locations stakeholder}
 ##start from StakeLocations
 maxRows <- length(AllRA_sts) * length(StakeLocations)
 
@@ -148,34 +146,126 @@ for (i in 1:length(StakeLocations)){
       #AllRA_sts <- unique(c(GCOOS_sts, SECOORA_sts, CARICOOS_sts))
       if (rlocs[j] %in% AllRA_sts){
         Loc_table$LID[rw_iter] <- rw_iter
-        Loc_table$SID[rw_iter] <- Stk_table$ID[i] #get the stakeholder ID
+        Loc_table$SID[rw_iter] <- Stk_table$SID[i] #get the stakeholder ID
         Loc_table$State[rw_iter] <- rlocs[j]
+        
+        rw_iter = rw_iter + 1
       } else if (rlocs[j] %in% RegionalNames){ #if it covers the whole area
         
         if (rlocs[j] == "Gulf of Mexico") {#just GCOOS area
-        
-        } else {
           
+          #add each Gulf State
+          for (l in 1:length(GCOOS_sts)){
+            Loc_table$LID[rw_iter] <- rw_iter
+            Loc_table$SID[rw_iter] <- Stk_table$SID[i] #get the stakeholder ID
+            Loc_table$State[rw_iter] <- GCOOS_sts[l]
+            
+            rw_iter = rw_iter + 1
+          }
           
-        }
+        } else { #Cover our entire area of interest
+          
+          ##Add all our states
+          for (g in 1:length(AllRA_sts)){
+            Loc_table$LID[rw_iter] <- rw_iter
+            Loc_table$SID[rw_iter] <- Stk_table$SID[i] #get the stakeholder ID
+            Loc_table$State[rw_iter] <- AllRA_sts[g]
+            
+            rw_iter = rw_iter + 1
+          }
+          
+        } #end if/else for regional groupings
         
       } else{ #skip it because it is presumably a city/state that is not relevant to us rn
         next
-      }
+      } #end state loop
 
-      
-  }
-
-  
+  } #end overall loop
   
 }
 
+#clean it up
+Loc_table <- Loc_table[Loc_table$LID !=0,]
+
+write.csv(Loc_table, "../01Data/Processed/Stakeholder_Locs.csv")
 ```
 
 ##Types
 This is the table with all the unique type stakeholder combinations
-```{r types}
+```{r types stakeholder}
+
+##Keep track of spelling issues
+Incorrect_stk <- c("community", "resilience", "conservation", "Science and Education", "education")
+Translate_stk <- c("Community", "Resilience", "Conservation/Restoration", "Education", "Education")
+
+maxRows <- length(sTypesUnique)*length(Stakeholders$Organization.s.)
+Types_tables <- as.data.frame(matrix(0, ncol=3, nrow=maxRows))
+names(Types_tables) <- c("TID", "SID", "TypeDescription")
+
+#Go through and add information to the table
+rw_iter <- 1
+for (i in 1:length(StakeTypeNotes)){
+  rtypes <- StakeTypeNotes[[i]]
+  
+  #No type information
+  if (length(rtypes) == 0){
+    next
+  }
+  
+  #in case you have multiple values within a line
+  for (j in 1:length(rtypes)){
+    
+    #if need to change the spelling or item
+    if (rtypes[j] %in% Incorrect_stk){
+      
+      rtypes[j] <- Translate_stk[match(rtypes[j], Incorrect_stk)]
+    
+    }
+    
+    Types_tables$TID[rw_iter] <- rw_iter
+    Types_tables$SID[rw_iter] <- Stk_table$SID[i] #get the stakeholder ID
+    Types_tables$TypeDescription[rw_iter] <- rtypes[j]
+    
+    rw_iter <- rw_iter + 1
+    
+  } #end of the j loop
+  
+} #end of the i loop
+
+#clean it up
+Types_tables <- Types_tables[Types_tables$TID !=0,]
+
+write.csv(Types_tables, "../01Data/Processed/Stakeholder_Types.csv")
 
 ```
 
+##Basic data set up - Data Modelers
 
+Going to need to split out Expertise.Category, Contact.Type, and State.Coverage
+
+```{r data setup data modelers}
+##data modelers
+DMdata <- DMdata[!is.null(DMdata$Person.Group.Name),]
+
+##for now, going to just say what these are, but could do a similar process as for Stakeholders to get the unique values
+u_contactType <- c("Data Collection", "Outreach", "Models")
+u_expertiseCat <- c("Ocean observing", "Atmospheric Science", "Stakeholder outreach", "Fisheries", "General observations")
+
+#locations (same as for stakeholders)
+GCOOS_sts <- c("TX", "LA", "MS" ,"AL", "FL")
+SECOORA_sts <- c("FL", "GA", "SC", "NC")
+CARICOOS_sts <- c("PR", "VI")
+
+#for ones that cover the whole region
+AllRA_sts <- unique(c(GCOOS_sts, SECOORA_sts, CARICOOS_sts))
+```
+
+##Data Modelers
+
+```{r DM basic table}
+DM_table <- DMdata[, c("Person.Group.Name","Organization.s.", "Location", "Specific.Location", "Last.Contacted", "Notes")]
+DM_table$ID <- 1:length(DM_table$Person.Group.Name)
+
+write.csv(DM_table, "../01Data/Processed/DataModeler_Info.csv")
+
+```
