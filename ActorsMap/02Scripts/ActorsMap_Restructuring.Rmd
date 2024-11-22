@@ -269,3 +269,140 @@ DM_table$ID <- 1:length(DM_table$Person.Group.Name)
 write.csv(DM_table, "../01Data/Processed/DataModeler_Info.csv")
 
 ```
+
+##Location
+
+```{r DM locations}
+##start from StakeLocations
+maxRows <- length(AllRA_sts) * length(StakeLocations)
+
+#create the storage table
+DMLoc_table <- as.data.frame(matrix(0, ncol=3, nrow=maxRows))
+names(DMLoc_table) <- c("LID", "ID", "State")
+
+#go through and fill out the table
+rw_iter <- 1
+for (i in 1:length(DMdata$State.Coverage)){
+  
+  #splitting it one at a time this time
+  rlocs <- strsplit(DMdata$State.Coverage[i], ", ")[[1]]
+
+  #No location information
+  if (length(rlocs) == 0){
+    print(paste("Warning, no location for", Stakeholders$Organization.s.[i]))
+    next
+  }
+
+  #in case you have multiple values within a line
+  for (j in 1:length(rlocs)){
+    
+      ##check what the location type is
+      #AllRA_sts <- unique(c(GCOOS_sts, SECOORA_sts, CARICOOS_sts))
+      if (rlocs[j] %in% AllRA_sts){
+        DMLoc_table$LID[rw_iter] <- rw_iter
+        DMLoc_table$ID[rw_iter] <- DM_table$ID[i] #get the stakeholder ID
+        DMLoc_table$State[rw_iter] <- rlocs[j]
+        
+        rw_iter = rw_iter + 1
+      } else if (rlocs[j] == "Global"){ #if it covers the whole area
+        
+        ##Add all our states
+        for (g in 1:length(AllRA_sts)){
+          DMLoc_table$LID[rw_iter] <- rw_iter
+          DMLoc_table$ID[rw_iter] <- DM_table$ID[i] #get the stakeholder ID
+          DMLoc_table$State[rw_iter] <- AllRA_sts[g]
+          
+          rw_iter = rw_iter + 1
+        
+        } #add all the states
+        
+      } else{ #skip it because it is presumably a city/state that is not relevant to us rn
+        print(paste("Error: Location", rlocs[j], "not recognized for location ID", DM_table$ID[i]))
+        next
+      } #end state loop
+
+  } #end overall loop
+  
+}
+
+#clean it up
+DMLoc_table <- DMLoc_table[DMLoc_table$LID !=0,]
+
+write.csv(DMLoc_table, "../01Data/Processed/DataModeler_Locs.csv")
+
+```
+
+##Contact Type
+
+```{r DM contact type}
+
+maxRows <- length(u_contactType)*length(DMdata$Person.Group.Name)
+DMTypes_tables <- as.data.frame(matrix(0, ncol=3, nrow=maxRows))
+names(DMTypes_tables) <- c("TID", "ID", "ContactType")
+
+#Go through and add information to the table
+rw_iter <- 1
+for (i in 1:length(DMdata$Contact.Type)){
+  
+  rtypes <- strsplit(DMdata$Contact.Type[i], ", ")[[1]]
+  
+  #No type information
+  if (length(rtypes) == 0){
+    next
+  }
+  
+  #in case you have multiple values within a line
+  for (j in 1:length(rtypes)){
+    
+    DMTypes_tables$TID[rw_iter] <- rw_iter
+    DMTypes_tables$ID[rw_iter] <- DM_table$ID[i] #get the stakeholder ID
+    DMTypes_tables$ContactType[rw_iter] <- rtypes[j]
+    
+    rw_iter <- rw_iter + 1
+    
+  } #end of the j loop
+  
+} #end of the i loop
+
+#clean it up
+DMTypes_tables <- DMTypes_tables[DMTypes_tables$TID !=0,]
+
+write.csv(DMTypes_tables, "../01Data/Processed/DataModeler_Types.csv")
+
+```
+
+##Expertise Category
+```{r DM expertise}
+maxRows <- length(u_expertiseCat)*length(DMdata$Person.Group.Name)
+DMExp_tables <- as.data.frame(matrix(0, ncol=3, nrow=maxRows))
+names(DMExp_tables) <- c("EID", "ID", "Expertise")
+
+#Go through and add information to the table
+rw_iter <- 1
+for (i in 1:length(DMdata$Expertise.Category)){
+  
+  rtypes <- strsplit(DMdata$Expertise.Category[i], ", ")[[1]]
+  
+  #No type information
+  if (length(rtypes) == 0){
+    next
+  }
+  
+  #in case you have multiple values within a line
+  for (j in 1:length(rtypes)){
+    
+    DMExp_tables$EID[rw_iter] <- rw_iter
+    DMExp_tables$ID[rw_iter] <- DM_table$ID[i] #get the stakeholder ID
+    DMExp_tables$Expertise[rw_iter] <- rtypes[j]
+    
+    rw_iter <- rw_iter + 1
+    
+  } #end of the j loop
+  
+} #end of the i loop
+
+#clean it up
+DMExp_tables <- DMExp_tables[DMExp_tables$EID !=0,]
+
+write.csv(DMExp_tables, "../01Data/Processed/DataModeler_Expert.csv")
+```
