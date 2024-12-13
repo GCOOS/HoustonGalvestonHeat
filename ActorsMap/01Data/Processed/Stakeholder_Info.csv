@@ -2,7 +2,7 @@
 "1","NOAA Southern Regional Climate Center","Federal","NM, TX, OK, LA, AK, MS, TN, AL, GA, FL, PR, VI",TRUE,"10/24/2024",1
 "2","Gulf of Mexico Fisheries Council","Federal","Gulf of Mexico",FALSE,"",2
 "3","Gulf States Marine Fisheries Commission","Regional","TX, LA, MS, AL, FL",FALSE,"",3
-"4","East Coast Shellfish Growers Association","Industry - Fisheries","ME, NH, MA, RI, CT, NJ, DE, MD, VA, NC, SC, GA, FL, AL, MS, LA, TX",FALSE,"",4
+"4","East Coast Shellfish Growers Association","Industry ","ME, NH, MA, RI, CT, NJ, DE, MD, VA, NC, SC, GA, FL, AL, MS, LA, TX",FALSE,"",4
 "5","Miccosukee Tribe","Tribal","FL",FALSE,"",5
 "6","Pointe-au-chien Tribe","Tribal","LA",FALSE,"",6
 "7","Grand Caillou/Dulac Band of the Biloxi-Chitimacha-Choctaw","Tribal","LA",FALSE,"",7
@@ -25,6 +25,6 @@
 "24","Louisiana Sea Grant","Federal/University Partnership","LA",TRUE,"10/30/2024",24
 "25","Mississippi-Alabama Sea Grant Consortium","Federal/University Partnership","MS, AL",FALSE,"",25
 "26","Florida Sea Grant","Federal/University Partnership","FL",FALSE,"",26
-"27","Society of Underwater Technology","Industry - Other","TX",FALSE,"",27
+"27","Society of Underwater Technology","Industry","TX",FALSE,"",27
 "28","Gulf Reach Institute","Non-profit","TX, LA, MS, AL, FL",TRUE,"11/21/2024",28
 "29","Houston Advanced Research Council","Non-profit","Hosuton, TX",TRUE,"11/13/2024",29

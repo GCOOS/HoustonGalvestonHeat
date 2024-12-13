@@ -57,8 +57,8 @@ for (i in 1:length(StakeTypeNotes)){
 }
 
 ##Keep track of spelling issues
-Incorrect_stk <- c("community", "resilience", "conservation", "Science and Education")
-Translate_stk <- c("Community", "Resilience", "Conservation/Restoration", "Education")
+Incorrect_stk <- c("community", "resilience", "conservation")
+Translate_stk <- c("Community", "Resilience", "Conservation/Restoration")
 
 ##same idea but for locations
 StakeLocations <- Stakeholders$Region
@@ -197,6 +197,8 @@ This is the table with all the unique type stakeholder combinations
 ##Keep track of spelling issues
 Incorrect_stk <- c("community", "resilience", "conservation", "Science and Education", "education")
 Translate_stk <- c("Community", "Resilience", "Conservation/Restoration", "Education", "Education")
+
+##Others that need updating
 
 maxRows <- length(sTypesUnique)*length(Stakeholders$Organization.s.)
 Types_tables <- as.data.frame(matrix(0, ncol=3, nrow=maxRows))
