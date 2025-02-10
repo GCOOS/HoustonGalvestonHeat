@@ -1,30 +1,47 @@
 "","Organization.s.","Contact.Type","Region","Contacted","Last.Contacted","SID"
-"1","NOAA Southern Regional Climate Center","Federal","NM, TX, OK, LA, AK, MS, TN, AL, GA, FL, PR, VI",TRUE,"10/24/2024",1
-"2","Gulf of Mexico Fisheries Council","Federal","Gulf of Mexico",FALSE,"",2
-"3","Gulf States Marine Fisheries Commission","Regional","TX, LA, MS, AL, FL",FALSE,"",3
-"4","East Coast Shellfish Growers Association","Industry ","ME, NH, MA, RI, CT, NJ, DE, MD, VA, NC, SC, GA, FL, AL, MS, LA, TX",FALSE,"",4
-"5","Miccosukee Tribe","Tribal","FL",FALSE,"",5
-"6","Pointe-au-chien Tribe","Tribal","LA",FALSE,"",6
-"7","Grand Caillou/Dulac Band of the Biloxi-Chitimacha-Choctaw","Tribal","LA",FALSE,"",7
-"8","Marine Biodiversity Observation Network","Non-profit","U.S.",FALSE,"",8
-"9","GLOBE","Non-profit","Global",TRUE,"11/14/2024",9
-"10","Florida Fish and Wildlife Conservation Commission","State","FL",FALSE,"",10
-"11","Florida Aquarium","Non-profit","FL",FALSE,"",11
-"12","Grand Bay National Marine Estuary","Federal","MS",FALSE,"",12
-"13","Apalachicola National Marine Estuary","Federal","FL",FALSE,"",13
-"14","Weeks Bay National Marine Estuary","Federal","AL",FALSE,"",14
-"15","City of Houston","Local","Houston, TX",FALSE,"",15
-"16","City of Galveston","Local","Galveston, TX",FALSE,"",16
-"17","City of New Orleans","Local","New Orleans, LA",FALSE,"",17
-"18","City of St. Petersburg","Local","St. Petersburg, FL",FALSE,"",18
-"19","City of Tampa","Local","Tampa, FL",FALSE,"",19
-"20","City of Mobile","Local","Mobile, AL",FALSE,"",20
-"21","Flower Garden Banks Marine Sanctuary","Federal","Gulf of Mexico",FALSE,"",21
-"22","Florida Keys Marine Sanctuary","Federal","Gulf of Mexico",FALSE,"",22
-"23","Texas Sea Grant","Federal/University Partnership","TX",TRUE,"11/15/2024",23
-"24","Louisiana Sea Grant","Federal/University Partnership","LA",TRUE,"10/30/2024",24
-"25","Mississippi-Alabama Sea Grant Consortium","Federal/University Partnership","MS, AL",FALSE,"",25
-"26","Florida Sea Grant","Federal/University Partnership","FL",FALSE,"",26
-"27","Society of Underwater Technology","Industry","TX",FALSE,"",27
-"28","Gulf Reach Institute","Non-profit","TX, LA, MS, AL, FL",TRUE,"11/21/2024",28
-"29","Houston Advanced Research Council","Non-profit","Hosuton, TX",TRUE,"11/13/2024",29
+"1","Miccosukee Tribe","Tribal","FL",FALSE,"",1
+"2","Pointe-au-chien Tribe","Tribal","LA",TRUE,"12/9/24",2
+"3","Grand Caillou/Dulac Band of the Biloxi-Chitimacha-Choctaw","Tribal","LA",FALSE,"",3
+"4","United Houma Nation","Tribal","LA",FALSE,"",4
+"5","Isle de Jean Charles Choctaw Nation","Tribal","LA",FALSE,"",5
+"6","Chitimacha Tribe","Tribal","LA",FALSE,"",6
+"7","Bayou Lafourche Band of the Biloxi-Chitimacha Indians","Tribal","LA",FALSE,"",7
+"8","Poarch Band of Creek Indians","Tribal","AL",FALSE,"",8
+"9","Seminole Tribe of Florida","Tribal","FL",FALSE,"",9
+"10","Perdido Bay Tribe of Lower Muscogee Creeks","Tribal","FL",FALSE,"",10
+"11","Muscogee Nation of Florida","Tribal","FL",FALSE,"",11
+"12","Florida Fish and Wildlife Conservation Commission","State","FL",FALSE,"",12
+"13","Gulf States Marine Fisheries Commission","Regional","TX, LA, MS, AL, FL",FALSE,"",13
+"14","Marine Biodiversity Observation Network","Non-profit","U.S.",FALSE,"",14
+"15","GLOBE","Non-profit","Global",TRUE,"12/9/24",15
+"16","Florida Aquarium","Non-profit","FL",FALSE,"",16
+"17","Gulf Reach Institute","Non-profit","TX, LA, MS, AL, FL",TRUE,"11/21/24",17
+"18","Houston Advanced Research Council","Non-profit","Hosuton, TX",TRUE,"12/16/24",18
+"19","City of Houston","Local","Houston, TX",FALSE,"",19
+"20","City of Galveston","Local","Galveston, TX",FALSE,"",20
+"21","City of New Orleans","Local","New Orleans, LA",FALSE,"",21
+"22","City of St. Petersburg","Local","St. Petersburg, FL",FALSE,"",22
+"23","City of Tampa","Local","Tampa, FL",FALSE,"",23
+"24","City of Mobile","Local","Mobile, AL",FALSE,"",24
+"25","City of Corpus Christi","Local","TX",FALSE,"Had a shoreline project",25
+"26","City of Beaumont-Port Arthur","Local","TX",FALSE,"HARC worked with them on a resilience plan, also had the SETx-UFL project",26
+"27","City of Pensacola","Local","FL",FALSE,"https://www.cityofpensacola.com/3326/Sustainability-Resiliency",27
+"28","City of Cape Coral","Local","FL",FALSE,"Part of the SWFL Regional Resiliency Coalition",28
+"29","City of Fort Myers/Lee County","Local","FL",FALSE,"Part of a resilience hub network",29
+"30","Society of Underwater Technology","Industry - Other","TX",FALSE,"",30
+"31","East Coast Shellfish Growers Association","Industry - Fisheries","ME, NH, MA, RI, CT, NJ, DE, MD, VA, NC, SC, GA, FL, AL, MS, LA, TX",FALSE,"",31
+"32","Texas Sea Grant","Federal/University Partnership","TX",TRUE,"11/15/24",32
+"33","Louisiana Sea Grant","Federal/University Partnership","LA",TRUE,"12/9/24",33
+"34","Mississippi-Alabama Sea Grant Consortium","Federal/University Partnership","MS, AL",TRUE,"12/9/24",34
+"35","Florida Sea Grant","Federal/University Partnership","FL",FALSE,"",35
+"36","NOAA Southern Regional Climate Center","Federal","NM, TX, OK, LA, AK, MS, TN, AL, GA, FL, PR, VI",TRUE,"10/24/24",36
+"37","Gulf of Mexico Fisheries Council","Federal","Gulf of Mexico",FALSE,"",37
+"38","Grand Bay National Marine Estuary","Federal","MS",FALSE,"",38
+"39","Apalachicola National Marine Estuary","Federal","FL",FALSE,"",39
+"40","Weeks Bay National Marine Estuary","Federal","AL",FALSE,"",40
+"41","Flower Garden Banks Marine Sanctuary","Federal","Gulf of Mexico",FALSE,"",41
+"42","Florida Keys Marine Sanctuary","Federal","Gulf of Mexico",FALSE,"",42
+"43","Everglades National Park","Federal","FL",FALSE,"https://www.nps.gov/ever/index.htm",43
+"44","Dry Tortugas National Park","Federal","FL",FALSE,"https://www.nps.gov/drto/index.htm",44
+"45","Biscayne National Park","Federal","FL",FALSE,"https://www.nps.gov/bisc/index.htm",45
+"46","Virgin Islands National Park","Federal","VI",FALSE,"https://www.nps.gov/viis/index.htm",46
