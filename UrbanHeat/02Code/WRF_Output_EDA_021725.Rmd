@@ -1,0 +1,89 @@
+---
+title: "WRF Output EDA"
+author: "Renata Poulton Kamakura"
+date: "2025-02-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+```
+
+##Read in data
+
+This is currently an incomplete run
+
+```{r read data}
+#Get the hourly averages for each year
+#Likely will need to update the files here once re-run with all the data and spin-up
+HourlyMeans16 <- read.csv("../03ProcessedData/HourlyMeans_2016_021025.csv")
+HourlyMeans17 <- read.csv("../03ProcessedData/HourlyMeans_2017_021025.csv")
+
+```
+
+##Basic EDA
+
+Ideally you want a linear mixed effects model. You can either run it with spatial random effects or use grid cell as a random intercept. My guess is that you should try running it with a spatial random effect but should try to look at the data first 
+
+From looking at this, I suspect the hourly means are not working like they should, these seem too homogenous...
+
+```{r EDA}
+#A little easier to mess around with
+aftHours <- c(14,15,16,17,18,19,20)
+AfternoonMeans16 <- HourlyMeans16[HourlyMeans16$hour %in% aftHours,]
+AfternoonMeans17 <- HourlyMeans17[HourlyMeans17$hour %in% aftHours,]
+
+#temp and lat
+ggplot(AfternoonMeans16, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Afternoon Temperatures with latitude") + 
+  xlab("Latitude") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Afternoon Temperatures with latitude") + 
+  xlab("Latitude") + ylab("Temperature (C)")
+
+#temp and long
+
+
+#temp and land use + hour
+ggplot(AfternoonMeans16, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(LandUse))) + 
+  geom_boxplot() + ggtitle("2016 Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(LandUse))) + 
+  geom_boxplot() + ggtitle("2017 Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")
+
+#temp and distance to ocean
+
+ggplot(AfternoonMeans16, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Afternoon Temperatures with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Afternoon Temperatures with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Temperature (C)")
+
+
+####################Relative Humidity
+
+
+#rel humidity and lat
+
+
+#rel humidity and long
+
+
+#rel humidity and land use
+
+
+#rel humidity and distance to ocean
+
+
+######################Both
+
+#temp and rel humidity
+
+```
