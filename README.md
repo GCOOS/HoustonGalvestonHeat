@@ -1,4 +1,4 @@
-Marine Heatwaves and Heat/Humidity in Houston/Galveston Bay
+# Marine Heatwaves and Heat/Humidity in Houston/Galveston Bay
 
 ## Description
 This project uses the outputs of [Weather Research and Forecasting (WRF) Model](https://www.mmm.ucar.edu/models/wrf) simulations to examine the connection between marine heatwaves in the Gulf and coastal temperatures and humidity in the Houston/Galveston Bay region.
