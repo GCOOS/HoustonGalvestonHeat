@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(ggplot2)
+library(spBayes) #spatial random effects
+library(geoR) #variogram functions
 ```
 
 ##Read in data
@@ -223,6 +225,70 @@ ggplot(AfternoonMeans17_2, aes(x=Dist2Ocean, y=RelHumid, color=as.factor(hour)))
 
 ```
 
+##EDA - variogram
+
+See if the spatial random effects approach is worth it
+
+```{r variogram}
+#Pick an hour of data to look at to make this a bit simpler
+#thinking 17 since it is kind of between the shift in aft to evening temps
+MidAftTemp16 <- HourlyMeans16[HourlyMeans16$hour == 17,]
+MidAftTemp17 <- HourlyMeans17[HourlyMeans17$hour == 17,]
+
+##start to look at varigrams for temp - 2016
+varDatTemp16 <- as.geodata(MidAftTemp16, coords.col = 2:3, data.col=5)
+plot(varDatTemp16)
+
+v1Temp16 <- variog(varDatTemp16, trend="1st", option="bin")
+plot(v1Temp16)
+v1Temp16.c <- variog(varDatTemp16, op="cloud")
+v1Temp16.bc <- variog(varDatTemp16, bin.cloud=TRUE)
+
+plot(v1Temp16.c, main="variogram cloud 2016 Temp")
+plot(v1Temp16.bc, bin.cloud=TRUE, main="clouds for binned variogram 2016 Temp")
+
+##variogram for temp 2017
+varDatTemp17 <- as.geodata(MidAftTemp17, coords.col = 2:3, data.col=5)
+plot(varDatTemp17)
+
+v1Temp17 <- variog(varDatTemp17, trend="1st", option="bin")
+plot(v1Temp17)
+v1Temp17.c <- variog(varDatTemp17, op="cloud")
+v1Temp17.bc <- variog(varDatTemp17, bin.cloud=TRUE)
+
+plot(v1Temp17.c, main="variogram cloud 2017 Temp")
+plot(v1Temp17.bc, bin.cloud=TRUE, main="clouds for binned variogram 2017 Temp")
+
+
+
+#variograms for RH - 2016
+varDatRH16 <- as.geodata(MidAftRH16, coords.col = 2:3, data.col=6)
+plot(varDatRH16)
+
+v1RH16 <- variog(varDatRH16, trend="1st", option="bin")
+plot(v1RH16)
+v1RH16.c <- variog(varDatRH16, op="cloud")
+v1RH16.bc <- variog(varDatRH16, bin.cloud=TRUE)
+
+plot(v1RH16.c, main="variogram cloud 2016 Relative Humidity")
+plot(v1RH16.bc, bin.cloud=TRUE, main="clouds for binned variogram 2016 Relative Humidity")
+
+
+
+#varigrams for RH 2017
+varDatRH17 <- as.geodata(MidAftRH17, coords.col = 2:3, data.col=6)
+plot(varDatRH17)
+
+v1RH17 <- variog(varDatRH17, trend="1st", option="bin")
+plot(v1RH17)
+v1RH17.c <- variog(varDatRH17, op="cloud")
+v1RH17.bc <- variog(varDatRH17, bin.cloud=TRUE)
+
+plot(v1RH17.c, main="variogram cloud 2017 Relative Humidity")
+plot(v1RH17.bc, bin.cloud=TRUE, main="clouds for binned variogram 2017 Relative Humidity")
+
+```
+
 ##Start in on regressions
 
 So we would need to account for a few things
@@ -231,3 +297,34 @@ So we would need to account for a few things
   - land use
   - distance from ocean
   - hour
+  
+The relationship should change throughout the day, you see that the slopes of some of these relationships shift over time...
+* hour x land use (really key)
+* hour x distance2ocean? 
+
+Alternatively, could run a few separate models at different times of day so you avoid some of the interactive effects
+* early afternoon (12-14)
+* peak temp (15-17)
+* evening (18-21)
+
+spBayes information
+* https://faculty.ucr.edu/~jflegal/203/spBayes_tutorial.pdf
+* https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
+
+If you do spDynLm I think you end up with different regressions for each hour
+* so you end up with temps at each hour as your y variables
+* then you coordinates are your spatial random effects
+* your fixed effects are then land use and distance2ocean
+
+```{r spatial temp}
+
+#change your coordinates to UTM so the distances are consistent
+coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
+#need to check the UTM zone
+coords_UTM <- st_transform(coords_sf, CRS("+proj=utm +zone=16 ellps=WGS84"))
+
+
+##add knots to make this run faster
+#https://rpubs.com/jimclark/751504
+
+```
