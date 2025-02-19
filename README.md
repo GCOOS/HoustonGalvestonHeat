@@ -13,7 +13,7 @@ This is part of an initiative with GCOOS, started in the fall of 2024 and still 
 * 04Visuals: Figures and other visuals from exploratory data analysis or more in-depth analysis
 
 ## Contributing
-Currently since the project is in its early stages and the outputs are primarily data analysis and not applications, please contact renata.kamakura@gcoos.org if you would like to contribute.
+Since the project is in its early stages and the outputs are primarily data analysis and not applications, please contact renata.kamakura@gcoos.org if you would like to contribute.
 
 ##Acknowledgements
-WRF runs were possible due to support from Dr. Dan Fu at Texas A&M University and technically support from Xiao Qi at GCOOS.
+WRF runs were possible due to support from Dr. Dan Fu at Texas A&M University, [Texas A&M High Performance Research Computing](https://hprc.tamu.edu/) and technical support from Xiao Qi at GCOOS.
