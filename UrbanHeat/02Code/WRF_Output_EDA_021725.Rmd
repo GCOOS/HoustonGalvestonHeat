@@ -21,6 +21,29 @@ This is currently an incomplete run
 HourlyMeans16 <- read.csv("../03ProcessedData/HourlyMeans_2016_021025.csv")
 HourlyMeans17 <- read.csv("../03ProcessedData/HourlyMeans_2017_021025.csv")
 
+#More for reference
+LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
+            'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest',
+            'Mixed Forests', 'Closed Shrublands',  'Open Shrublands', 
+            'Woody Savannas', 'Savannas', 'Grasslands', 
+            'Permanent wetlands', 'Croplands', 'Urban and Built-Up', 
+            'cropland/natural vegetation mosaic', 
+            'Snow and Ice', 'Barren or Sparsely Vegetated', 'Water')
+
+NewLUs <- c('Forest', 'Forest', 'Forest', 'Forest', 'Forest',
+            'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna',
+            "Shrub/Savanna", "Wetlands", "Crop", "Urban", "Crop", "Snow", 
+            "Barren", "Water")
+NewLU_nums <- c(1,1,1,1,1,2,2,2,2,2,3,4,5,4,6,7,8)
+
+LU_dict <- as.data.frame(matrix(0, nrow=17, ncol=4))
+names(LU_dict) <- c("Original_Name", "Original_Num", "New_Name", "New_Num")
+
+LU_dict$Original_Name <- LU_names
+LU_dict$Original_Num <- 1:17
+LU_dict$New_Name <- NewLUs
+LU_dict$New_Num <- NewLU_nums
+
 ```
 
 ##Basic EDA
@@ -29,61 +52,182 @@ Ideally you want a linear mixed effects model. You can either run it with spatia
 
 From looking at this, I suspect the hourly means are not working like they should, these seem too homogenous...
 
-```{r EDA}
+```{r temp EDA}
 #A little easier to mess around with
-aftHours <- c(14,15,16,17,18,19,20)
-AfternoonMeans16 <- HourlyMeans16[HourlyMeans16$hour %in% aftHours,]
-AfternoonMeans17 <- HourlyMeans17[HourlyMeans17$hour %in% aftHours,]
+aftHours1 <- c(12,13,14,15,16) #earlier as you get the start of the sea breeze
+aftHours2 <- c(17,18,19,20,21) #as the land starts to cool down 
 
-#temp and lat
-ggplot(AfternoonMeans16, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
-    geom_point() + ggtitle("2016 Afternoon Temperatures with latitude") + 
+AfternoonMeans16_1 <- HourlyMeans16[HourlyMeans16$hour %in% aftHours1,]
+AfternoonMeans17_1 <- HourlyMeans17[HourlyMeans17$hour %in% aftHours1,]
+
+AfternoonMeans16_2 <- HourlyMeans16[HourlyMeans16$hour %in% aftHours2,]
+AfternoonMeans17_2 <- HourlyMeans17[HourlyMeans17$hour %in% aftHours2,]
+
+##########################temp and lat
+ggplot(AfternoonMeans16_1, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Early Afternoon Temperatures with Latitude") + 
   xlab("Latitude") + ylab("Temperature (C)")
 
-ggplot(AfternoonMeans17, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
-    geom_point() + ggtitle("2017 Afternoon Temperatures with latitude") + 
+ggplot(AfternoonMeans16_2, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Late Afternoon Temperatures with Latitude") + 
   xlab("Latitude") + ylab("Temperature (C)")
 
-#temp and long
+ggplot(AfternoonMeans17_1, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Early Afternoon Temperatures with Latitude") + 
+  xlab("Latitude") + ylab("Temperature (C)")
 
+ggplot(AfternoonMeans17_2, aes(x=lat, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Late Afternoon Temperatures with Latitude") + 
+  xlab("Latitude") + ylab("Temperature (C)")
 
-#temp and land use + hour
-ggplot(AfternoonMeans16, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(LandUse))) + 
-  geom_boxplot() + ggtitle("2016 Afternoon Temperatures by Land Use") + 
+##########################temp and long
+ggplot(AfternoonMeans16_1, aes(x=long, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Early Afternoon Temperatures with Longitude") + 
+  xlab("Longitude") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans16_2, aes(x=long, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Late Afternoon Temperatures with Longitude") + 
+  xlab("Longitude") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17_1, aes(x=long, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Early Afternoon Temperatures with Longitude") + 
+  xlab("Longitude") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17_2, aes(x=long, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Late Afternoon Temperatures with Longitude") + 
+  xlab("Longitude") + ylab("Temperature (C)")
+
+############################temp and land use + hour
+AfternoonMeans16_modLU_1 <- AfternoonMeans16_1
+AfternoonMeans16_modLU_1$LandUse <- LU_dict$New_Name[AfternoonMeans16_1$LandUse]
+AfternoonMeans16_modLU_2 <- AfternoonMeans16_2
+AfternoonMeans16_modLU_2$LandUse<- LU_dict$New_Name[AfternoonMeans16_2$LandUse]
+
+AfternoonMeans17_modLU_1 <- AfternoonMeans17_1
+AfternoonMeans17_modLU_1$LandUse <- LU_dict$New_Name[AfternoonMeans17_1$LandUse]
+AfternoonMeans17_modLU_2 <- AfternoonMeans17_2
+AfternoonMeans17_modLU_2$LandUse <- LU_dict$New_Name[AfternoonMeans17_2$LandUse] 
+
+##ideally should group land use somehow
+ggplot(AfternoonMeans16_modLU_1, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Early Afternoon Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature (C)")
 
-ggplot(AfternoonMeans17, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(LandUse))) + 
-  geom_boxplot() + ggtitle("2017 Afternoon Temperatures by Land Use") + 
+ggplot(AfternoonMeans16_modLU_2, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Late Afternoon Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature (C)")
 
-#temp and distance to ocean
 
-ggplot(AfternoonMeans16, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
-    geom_point() + ggtitle("2016 Afternoon Temperatures with Distance to Ocean") + 
+ggplot(AfternoonMeans17_modLU_1, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Early Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17_modLU_2, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Late Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")
+
+############################temp and distance to ocean
+
+ggplot(AfternoonMeans16_1, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Early Afternoon Temperatures with Distance to Ocean") + 
   xlab("Distance to Ocean (m)") + ylab("Temperature (C)")
 
-ggplot(AfternoonMeans17, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
-    geom_point() + ggtitle("2017 Afternoon Temperatures with Distance to Ocean") + 
+ggplot(AfternoonMeans16_2, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Late Afternoon Temperatures with Distance to Ocean") + 
   xlab("Distance to Ocean (m)") + ylab("Temperature (C)")
 
+ggplot(AfternoonMeans17_1, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Early Afternoon Temperatures with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Temperature (C)")
+
+ggplot(AfternoonMeans17_2, aes(x=Dist2Ocean, y=(X2mTemp-273.15), color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Late Afternoon Temperatures with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Temperature (C)")
+```
+
+
+```{r humidity eda}
 
 ####################Relative Humidity
 
 
 #rel humidity and lat
+ggplot(AfternoonMeans16_1, aes(x=lat, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Early Afternoon Relative Humidity with Latitude") + 
+  xlab("Latitude") + ylab("Relative Humidity (%)")
 
+ggplot(AfternoonMeans16_2, aes(x=lat, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Late Afternoon Relative Humidity with Latitude") + 
+  xlab("Latitude") + ylab("Relative Humidity (%)")
+
+ggplot(AfternoonMeans17_1, aes(x=lat, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Early Afternoon Relative Humidity with Latitude") + 
+  xlab("Latitude") + ylab("Relative Humidity (%)")
+
+ggplot(AfternoonMeans17_2, aes(x=lat, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Late Afternoon Relative Humidity with Latitude") + 
+  xlab("Latitude") + ylab("Relative Humidity (%)")
 
 #rel humidity and long
+ggplot(AfternoonMeans16_1, aes(x=long, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Early Afternoon Relative Humidity with Longitude") + 
+  xlab("Longitude") + ylab("Relative Humidity (%)")
 
+ggplot(AfternoonMeans16_2, aes(x=long, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Late Afternoon Relative Humidity with Longitude") + 
+  xlab("Longitude") + ylab("Relative Humidity (%)")
+
+ggplot(AfternoonMeans17_1, aes(x=long, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Early Afternoon Relative Humidity with Longitude") + 
+  xlab("Longitude") + ylab("Relative Humidity (%)")
+
+ggplot(AfternoonMeans17_2, aes(x=long, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Late Afternoon Relative Humidity with Longitude") + 
+  xlab("Longitude") + ylab("Relative Humidity (%)")
 
 #rel humidity and land use
+ggplot(AfternoonMeans16_modLU_1, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Early Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")
+
+ggplot(AfternoonMeans16_modLU_2, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Late Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")
+
+
+ggplot(AfternoonMeans17_modLU_1, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Early Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")
+
+ggplot(AfternoonMeans17_modLU_2, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Late Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")
 
 
 #rel humidity and distance to ocean
+ggplot(AfternoonMeans16_1, aes(x=Dist2Ocean, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Early Afternoon Relative Humidity with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Relative Humidity (%)")
 
+ggplot(AfternoonMeans16_2, aes(x=Dist2Ocean, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2016 Late Afternoon Relative Humidity with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Relative Humidity (%)")
 
-######################Both
+ggplot(AfternoonMeans17_1, aes(x=Dist2Ocean, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Early Afternoon Relative Humidity with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Relative Humidity (%)")
 
-#temp and rel humidity
+ggplot(AfternoonMeans17_2, aes(x=Dist2Ocean, y=RelHumid, color=as.factor(hour))) + 
+    geom_point() + ggtitle("2017 Late Afternoon Relative Humidity with Distance to Ocean") + 
+  xlab("Distance to Ocean (m)") + ylab("Relative Humidity (%)")
 
 ```
+
+##Start in on regressions
+
+So we would need to account for a few things
+* spatial random effects
+* fixed effects
+  - land use
+  - distance from ocean
+  - hour
