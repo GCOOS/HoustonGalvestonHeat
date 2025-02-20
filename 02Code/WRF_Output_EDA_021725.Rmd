@@ -9,7 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(ggplot2)
-library(spBayes) #spatial random effects
 library(geoR) #variogram functions
 ```
 
@@ -289,42 +288,3 @@ plot(v1RH17.bc, bin.cloud=TRUE, main="clouds for binned variogram 2017 Relative 
 
 ```
 
-##Start in on regressions
-
-So we would need to account for a few things
-* spatial random effects
-* fixed effects
-  - land use
-  - distance from ocean
-  - hour
-  
-The relationship should change throughout the day, you see that the slopes of some of these relationships shift over time...
-* hour x land use (really key)
-* hour x distance2ocean? 
-
-Alternatively, could run a few separate models at different times of day so you avoid some of the interactive effects
-* early afternoon (12-14)
-* peak temp (15-17)
-* evening (18-21)
-
-spBayes information
-* https://faculty.ucr.edu/~jflegal/203/spBayes_tutorial.pdf
-* https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
-
-If you do spDynLm I think you end up with different regressions for each hour
-* so you end up with temps at each hour as your y variables
-* then you coordinates are your spatial random effects
-* your fixed effects are then land use and distance2ocean
-
-```{r spatial temp}
-
-#change your coordinates to UTM so the distances are consistent
-coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
-#need to check the UTM zone
-coords_UTM <- st_transform(coords_sf, CRS("+proj=utm +zone=16 ellps=WGS84"))
-
-
-##add knots to make this run faster
-#https://rpubs.com/jimclark/751504
-
-```

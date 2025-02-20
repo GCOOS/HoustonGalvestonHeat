@@ -1,0 +1,295 @@
+---
+title: "WRF Output SpBayes"
+author: "Renata Poulton Kamakura"
+date: "2025-02-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(spBayes) #spatial random effects
+
+#for data reformatting and spBayes setup
+library(sf)
+library(sp)
+library(dplyr)
+
+library(RANN) #for knots
+```
+
+##Read in data
+
+Creating the LU dictionary to simplify the land use categories a bit for the run, we are not as worried about subtleties of LU impacts
+
+```{r read data}
+#Get the hourly averages for each year
+#Likely will need to update the files here once re-run with all the data and spin-up
+HourlyMeans16 <- read.csv("../03ProcessedData/HourlyMeans_2016_021025.csv")
+HourlyMeans17 <- read.csv("../03ProcessedData/HourlyMeans_2017_021025.csv")
+
+#More for reference
+LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
+            'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest',
+            'Mixed Forests', 'Closed Shrublands',  'Open Shrublands', 
+            'Woody Savannas', 'Savannas', 'Grasslands', 
+            'Permanent wetlands', 'Croplands', 'Urban and Built-Up', 
+            'cropland/natural vegetation mosaic', 
+            'Snow and Ice', 'Barren or Sparsely Vegetated', 'Water')
+
+NewLUs <- c('Forest', 'Forest', 'Forest', 'Forest', 'Forest',
+            'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna',
+            "Shrub/Savanna", "Wetlands", "Crop", "Urban", "Crop", "Snow", 
+            "Barren", "Water")
+NewLU_nums <- c(1,1,1,1,1,2,2,2,2,2,3,4,5,4,6,7,8)
+
+LU_dict <- as.data.frame(matrix(0, nrow=17, ncol=4))
+names(LU_dict) <- c("Original_Name", "Original_Num", "New_Name", "New_Num")
+
+LU_dict$Original_Name <- LU_names
+LU_dict$Original_Num <- 1:17
+LU_dict$New_Name <- NewLUs
+LU_dict$New_Num <- NewLU_nums
+
+```
+
+
+##Start in on regressions
+
+So we would need to account for a few things
+* spatial random effects
+* fixed effects
+  - land use
+  - distance from ocean
+  - hour
+  
+The relationship should change throughout the day, you see that the slopes of some of these relationships shift over time...
+* hour x land use (really key)
+* hour x distance2ocean? 
+
+Alternatively, could run a few separate models at different times of day so you avoid some of the interactive effects
+* early afternoon (12-14)
+* peak temp (15-17)
+* evening (18-21)
+
+spBayes information
+* https://faculty.ucr.edu/~jflegal/203/spBayes_tutorial.pdf
+* https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
+
+If you do spDynLm I think you end up with different regressions for each hour
+* so you end up with temps at each hour as your y variables
+* then you coordinates are your spatial random effects
+* your fixed effects are then land use and distance2ocean
+
+
+```{r create knots}
+
+#this should work for both datasets
+nobs <- length(HourlyMeans17$GridCell) #number of observations
+coords <- HourlyMeans17[, c("GridCell", "lat", "long")] #points of the observations
+names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
+coords <- unique(coords)
+n.samples <- 5000
+
+#change your coordinates to UTM so the distances are consistent
+coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
+coords_UTM <- st_transform(coords_sf, CRS("+proj=utm +zone=15 ellps=WGS84"))
+
+
+##add knots to make this run faster - dimension reduction
+#https://rpubs.com/jimclark/751504
+nk   <- 12
+boundingbox <- st_bbox(coords_UTM)
+klon <- seq(boundingbox[1],boundingbox[3],length=nk)[-c(1,nk)]
+klat <- seq(boundingbox[2],boundingbox[4],length=nk)[-c(1,nk)]
+knots <- as.matrix( expand.grid(klon,klat) )
+kdf <- as.data.frame(knots)
+names(kdf) <- c("X", "Y")
+knots_sf <- st_as_sf(kdf, coords=c("X", "Y"), crs = CRS("+proj=utm +zone=15 ellps=WGS84"))
+
+knots_test <- knots_sf %>% 
+  mutate(within_2000 = lengths(st_is_within_distance(x = .,
+                                                    y = coords_UTM,
+                                                    dist = 2000)))
+
+ntot <- 50 #number of knots to keep
+knots <- st_coordinates(knots_test$geometry[order(knots_test$within_2000, decreasing = TRUE)][1:ntot])
+
+#check the knots
+plot(boundingbox, xlim=c(boundingbox[1], boundingbox[3]), ylim=c(boundingbox[2], boundingbox[4]))
+points(st_coordinates(coords_UTM),cex=.2)
+points(knots[,1],knots[,2],col='black', pch=15)
+
+```
+
+Now that we have some spatial dimension reduction, re-organize the data into the format we need
+
+```{r reformat data}
+#reduce your landuse categories
+HourlyMeans16$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
+HourlyMeans17$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
+
+HoursOfInterest <- 12:21 #partly from EDA, basically going from approaching peak temps and down into the evening and the start of cool-down
+
+################################2016: Non-MHW
+#Re-organize 2016 - Temperature
+#columns are one for each hour, one for distance2ocean, and one for land use
+ReOrg_Temp16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+
+HourlyMeans16 <- HourlyMeans16[order(HourlyMeans16$GridCell),] #make sure the order is consistent so you know which points are which
+
+#Get your hourly temps - response
+ReOrg_Temp16[,1] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 12]
+ReOrg_Temp16[,2] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 13]
+ReOrg_Temp16[,3] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 14]
+ReOrg_Temp16[,4] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 15]
+ReOrg_Temp16[,5] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 16]
+ReOrg_Temp16[,6] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 17]
+ReOrg_Temp16[,7] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 18]
+ReOrg_Temp16[,8] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 19]
+ReOrg_Temp16[,9] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 20]
+ReOrg_Temp16[,10] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 21]
+
+#Get your fixed effects
+ReOrg_Temp16[,11] <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 12]
+ReOrg_Temp16[,12] <- HourlyMeans16$LandUse[HourlyMeans16$hour == 12]
+names(ReOrg_Temp16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+
+#re-organize 2016 humidity
+ReOrg_RH16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+
+#Get your hourly temps - response
+ReOrg_RH16[,1] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 12]
+ReOrg_RH16[,2] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 13]
+ReOrg_RH16[,3] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 14]
+ReOrg_RH16[,4] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 15]
+ReOrg_RH16[,5] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 16]
+ReOrg_RH16[,6] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 17]
+ReOrg_RH16[,7] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 18]
+ReOrg_RH16[,8] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 19]
+ReOrg_RH16[,9] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 20]
+ReOrg_RH16[,10] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 21]
+
+#Get your fixed effects
+ReOrg_RH16[,11] <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 12]
+ReOrg_RH16[,12] <- HourlyMeans16$LandUse[HourlyMeans16$hour == 12]
+names(ReOrg_RH16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+############################# 2017: MHW
+#Re-organize 2017 - Temperature
+#columns are one for each hour, one for distance2ocean, and one for land use
+ReOrg_Temp17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+
+HourlyMeans17 <- HourlyMeans17[order(HourlyMeans17$GridCell),] #make sure the order is consistent so you know which points are which
+
+#Get your hourly temps - response
+ReOrg_Temp17[,1] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 12]
+ReOrg_Temp17[,2] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 13]
+ReOrg_Temp17[,3] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 14]
+ReOrg_Temp17[,4] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 15]
+ReOrg_Temp17[,5] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 16]
+ReOrg_Temp17[,6] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 17]
+ReOrg_Temp17[,7] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 18]
+ReOrg_Temp17[,8] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 19]
+ReOrg_Temp17[,9] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 20]
+ReOrg_Temp17[,10] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 21]
+
+#Get your fixed effects
+ReOrg_Temp17[,11] <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 12]
+ReOrg_Temp17[,12] <- HourlyMeans17$LandUse[HourlyMeans17$hour == 12]
+names(ReOrg_Temp17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+
+#re-organize 2017 humidity
+ReOrg_RH17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+
+#Get your hourly temps - response
+ReOrg_RH17[,1] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 12]
+ReOrg_RH17[,2] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 13]
+ReOrg_RH17[,3] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 14]
+ReOrg_RH17[,4] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 15]
+ReOrg_RH17[,5] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 16]
+ReOrg_RH17[,6] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 17]
+ReOrg_RH17[,7] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 18]
+ReOrg_RH17[,8] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 19]
+ReOrg_RH17[,9] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 20]
+ReOrg_RH17[,10] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 21]
+
+#Get your fixed effects
+ReOrg_RH17[,11] <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 12]
+ReOrg_RH17[,12] <- HourlyMeans17$LandUse[HourlyMeans17$hour == 12]
+names(ReOrg_RH17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+```
+
+Next, set-up the priors
+
+```{r priors}
+
+#Figure out what parameters you need
+N.t <- length(HoursOfInterest) #number of hours we are working with
+
+#these should be the same for 2016 and 2017 but worth checking separately anyway
+n16 <- length(unique(HourlyMeans16$GridCell)) #observations per year
+p16 <- (length(unique(HourlyMeans16$LandUse))-1) + 1 #number of predictors, have to account for categorical land use
+
+n17 <- length(unique(HourlyMeans17$GridCell)) #observations per year
+p17 <- (length(unique(HourlyMeans17$LandUse))-1) + 1 #number of predictors, have to account for categorical land use
+
+#Should set your baseline land use - maybe to forest?
+HourlyMeans16$LandUse <- relevel(HourlyMeans16$LandUse, ref="Forest")
+HourlyMeans17$LandUse <- relevel(HourlyMeans17$LandUse, ref="Forest")
+
+##starting and priors
+x.d <- max(iDist(st_coordinates(coords_UTM)))
+
+#########Need to figure out how to handle relative humditiy because it is bounded between 0 and 100
+#########Temperature should be fine
+
+## 2016
+tuning16 <- list("phi" = rep(0.1, N.t))
+
+starting16 <-list("beta"=rep(0,N.t*p16), "phi"=rep(3/(0.5*x.d), N.t),
+                 "sigma.sq"=rep(1,N.t), "tau.sq"=rep(1, N.t),
+                 "sigma.eta"=diag(rep(0.01, p16)))
+
+priors16 <- list("beta.0.Norm"=list(rep(0,p16), diag(1000,p16)),
+               "phi.Unif"=list(rep(3/(0.9*x.d),N.t), rep(3/(0.001*x.d),N.t)),
+               "sigma.sq.IG"=list(rep(2,N.t), rep(10,N.t)),
+               "tau.sq.IG"=list(rep(2,N.t), rep(10,N.t)),
+               "sigma.eta.IW"=list(2, diag(0.001,p16)))
+
+## 2017
+tuning17 <- list("phi" = rep(0.1, N.t))
+
+starting17 <-list("beta"=rep(0,N.t*p17), "phi"=rep(3/(0.5*x.d), N.t),
+                 "sigma.sq"=rep(1,N.t), "tau.sq"=rep(1, N.t),
+                 "sigma.eta"=diag(rep(0.01, p16)))
+
+priors17 <- list("beta.0.Norm"=list(rep(0,p17), diag(1000,p17)),
+               "phi.Unif"=list(rep(3/(0.9*x.d),N.t), rep(3/(0.001*x.d),N.t)),
+               "sigma.sq.IG"=list(rep(2,N.t), rep(10,N.t)),
+               "tau.sq.IG"=list(rep(2,N.t), rep(10,N.t)),
+               "sigma.eta.IW"=list(2, diag(0.001,p17)))
+
+```
+
+Now actually run the regression
+
+Temperature should be fine this way, but relative humdity is bounded between 0 and 100. If we don't get close to the ends we may be able to pretend it is approximately continuous but need to check that with the EDA first. 
+
+You should also decide on the covariance model based on the EDA. Exponential is pretty normal I think...
+
+```{r regs 2016}
+
+#Temperature
+##get the models
+mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
+
+#run the model
+m.1 <- spDynLM(mods, data=ReOrg_Temp16, coords=st_coordinates(coords_UTM),
+               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+```
