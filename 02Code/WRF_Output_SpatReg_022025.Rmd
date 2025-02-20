@@ -127,14 +127,23 @@ Now that we have some spatial dimension reduction, re-organize the data into the
 ```{r reformat data}
 #reduce your landuse categories
 HourlyMeans16$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
-HourlyMeans17$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
+HourlyMeans17$LandUse <- LU_dict$New_Name[HourlyMeans17$LandUse]
+
+#Should set your baseline land use - maybe to forest?
+HourlyMeans16$LandUse <- as.factor(HourlyMeans16$LandUse)
+HourlyMeans16$LandUse <- relevel(HourlyMeans16$LandUse, ref="Forest")
+HourlyMeans17$LandUse <- as.factor(HourlyMeans17$LandUse)
+HourlyMeans17$LandUse <- relevel(HourlyMeans17$LandUse, ref="Forest")
 
 HoursOfInterest <- 12:21 #partly from EDA, basically going from approaching peak temps and down into the evening and the start of cool-down
+
+n16 <- length(unique(HourlyMeans16$GridCell)) #observations per hour
+n17 <- length(unique(HourlyMeans17$GridCell)) #observations per hour
 
 ################################2016: Non-MHW
 #Re-organize 2016 - Temperature
 #columns are one for each hour, one for distance2ocean, and one for land use
-ReOrg_Temp16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+ReOrg_Temp16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow = n16))
 
 HourlyMeans16 <- HourlyMeans16[order(HourlyMeans16$GridCell),] #make sure the order is consistent so you know which points are which
 
@@ -157,7 +166,7 @@ names(ReOrg_Temp16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8",
 
 
 #re-organize 2016 humidity
-ReOrg_RH16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+ReOrg_RH16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n16))
 
 #Get your hourly temps - response
 ReOrg_RH16[,1] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 12]
@@ -179,7 +188,7 @@ names(ReOrg_RH16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "
 ############################# 2017: MHW
 #Re-organize 2017 - Temperature
 #columns are one for each hour, one for distance2ocean, and one for land use
-ReOrg_Temp17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+ReOrg_Temp17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17))
 
 HourlyMeans17 <- HourlyMeans17[order(HourlyMeans17$GridCell),] #make sure the order is consistent so you know which points are which
 
@@ -202,7 +211,7 @@ names(ReOrg_Temp17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8",
 
 
 #re-organize 2017 humidity
-ReOrg_RH17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n))
+ReOrg_RH17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17))
 
 #Get your hourly temps - response
 ReOrg_RH17[,1] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 12]
@@ -225,21 +234,16 @@ names(ReOrg_RH17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "
 
 Next, set-up the priors
 
+Documentation: https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
+
 ```{r priors}
 
 #Figure out what parameters you need
 N.t <- length(HoursOfInterest) #number of hours we are working with
 
 #these should be the same for 2016 and 2017 but worth checking separately anyway
-n16 <- length(unique(HourlyMeans16$GridCell)) #observations per year
-p16 <- (length(unique(HourlyMeans16$LandUse))-1) + 1 #number of predictors, have to account for categorical land use
-
-n17 <- length(unique(HourlyMeans17$GridCell)) #observations per year
-p17 <- (length(unique(HourlyMeans17$LandUse))-1) + 1 #number of predictors, have to account for categorical land use
-
-#Should set your baseline land use - maybe to forest?
-HourlyMeans16$LandUse <- relevel(HourlyMeans16$LandUse, ref="Forest")
-HourlyMeans17$LandUse <- relevel(HourlyMeans17$LandUse, ref="Forest")
+p16 <- (length(unique(HourlyMeans16$LandUse))) + 1 #number of predictors, have to account for categorical land use
+p17 <- (length(unique(HourlyMeans17$LandUse))) + 1 #number of predictors, have to account for categorical land use
 
 ##starting and priors
 x.d <- max(iDist(st_coordinates(coords_UTM)))
@@ -279,6 +283,8 @@ Now actually run the regression
 
 Temperature should be fine this way, but relative humdity is bounded between 0 and 100. If we don't get close to the ends we may be able to pretend it is approximately continuous but need to check that with the EDA first. 
 
+Update: from EDA seems like you stay between RH 30 and 80, so should be able to approximate it as continuous linear rather than having to deal with a beta regression
+
 You should also decide on the covariance model based on the EDA. Exponential is pretty normal I think...
 
 ```{r regs 2016}
@@ -288,8 +294,45 @@ You should also decide on the covariance model based on the EDA. Exponential is 
 mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
 
 #run the model
-m.1 <- spDynLM(mods, data=ReOrg_Temp16, coords=st_coordinates(coords_UTM),
+m.temp.16 <- spDynLM(mods, data=ReOrg_Temp16, coords=st_coordinates(coords_UTM),
                starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
                cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+```
+
+
+## Look at outputs
+
+Copied from previous code, going to need to adjust
+
+```{r 2016 outputs}
+#Jim's way of calculating
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.1$p.samples[,"phi"] <- 3/m.1$p.samples[,"phi"]
+
+coeff <- t(apply( m.1$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.1$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "SpDynLM_Coefficients_ParkBase2.csv")
+saveRDS(m.1, "SyDynLm_mod.rds")
+
+#spatial random effects
+##need to check the order, may be tau then sigma then phi
+ts.plot(m.1$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.1$p.theta.samples)),ylim=c(0,4))
+ts.plot(m.1$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.1$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.1$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.1$p.theta.samples)))
+
+##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+
+coeff <- t(apply( m.1$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.1$p.sigma.eta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
 
 ```
