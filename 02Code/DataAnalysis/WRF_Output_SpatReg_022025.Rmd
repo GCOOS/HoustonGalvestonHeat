@@ -369,12 +369,6 @@ ts.plot(m.rh.16$p.theta.samples[,3],main="phi",ylab="",
 xlim=c(50,nrow(m.rh.16$p.theta.samples)))
 
 ##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
-
-coeff <- t(apply( m.rh.16$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
-se    <- apply( m.rh.16$p.sigma.eta.samples, 2, sd )
-coeff <- cbind( coeff[,1], se, coeff[,2:3])
-print( signif(coeff, 3) )
-
 ```
 
 ## Run models for MHW year
