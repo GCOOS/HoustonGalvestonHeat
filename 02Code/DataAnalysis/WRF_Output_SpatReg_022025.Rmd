@@ -25,8 +25,8 @@ Creating the LU dictionary to simplify the land use categories a bit for the run
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
-HourlyMeans16 <- read.csv("../03ProcessedData/HourlyMeans_2016_021025.csv")
-HourlyMeans17 <- read.csv("../03ProcessedData/HourlyMeans_2017_021025.csv")
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_021025.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_021025.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
