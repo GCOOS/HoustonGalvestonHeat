@@ -89,7 +89,6 @@ nobs <- length(HourlyMeans17$GridCell) #number of observations
 coords <- HourlyMeans17[, c("GridCell", "lat", "long")] #points of the observations
 names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
 coords <- unique(coords)
-n.samples <- 5000
 
 #change your coordinates to UTM so the distances are consistent
 coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
@@ -240,6 +239,7 @@ Documentation: https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
 
 #Figure out what parameters you need
 N.t <- length(HoursOfInterest) #number of hours we are working with
+n.samples <- 5000 #for the MCMC
 
 #these should be the same for 2016 and 2017 but worth checking separately anyway
 p16 <- (length(unique(HourlyMeans16$LandUse))) + 1 #number of predictors, have to account for categorical land use
@@ -287,6 +287,8 @@ Update: from EDA seems like you stay between RH 30 and 80, so should be able to 
 
 You should also decide on the covariance model based on the EDA. Exponential is pretty normal I think...
 
+Update from EDA: Definitely have spatial structure, the difference seems to peak somewhere between 0.5 and 1.0 (distance)
+
 ```{r regs 2016}
 
 #Temperature
@@ -298,6 +300,12 @@ m.temp.16 <- spDynLM(mods, data=ReOrg_Temp16, coords=st_coordinates(coords_UTM),
                starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
                cov.model="exponential", n.samples=n.samples, n.report=500) 
 
+#Backup <- m.temp.16
+
+##Relative humidity
+m.rh.16 <- spDynLM(mods, data=ReOrg_RH16, coords=st_coordinates(coords_UTM),
+               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
 ```
 
 
@@ -306,32 +314,153 @@ m.temp.16 <- spDynLM(mods, data=ReOrg_Temp16, coords=st_coordinates(coords_UTM),
 Copied from previous code, going to need to adjust
 
 ```{r 2016 outputs}
+
+###############2016 temperature
 #Jim's way of calculating
 burn.in   <- 0.75*n.samples
 sub.samps <- burn.in:n.samples
-m.1$p.samples[,"phi"] <- 3/m.1$p.samples[,"phi"]
+m.temp.16$p.samples[,"phi"] <- 3/m.temp.16$p.samples[,"phi"]
 
-coeff <- t(apply( m.1$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
-se    <- apply( m.1$p.beta.samples, 2, sd )
+coeff <- t(apply( m.temp.16$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.temp.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "SpDynLM_Coefficients_ParkBase2.csv")
-saveRDS(m.1, "SyDynLm_mod.rds")
+write.csv(signif(coeff, 3), "../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016.csv")
+saveRDS(m.temp.16, "../05AnalysisOutputs/SpDynLM_Temp2016.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
-ts.plot(m.1$p.theta.samples[,1],main="sigma sq",ylab="",
-xlim=c(100,nrow(m.1$p.theta.samples)),ylim=c(0,4))
-ts.plot(m.1$p.theta.samples[,2],main="tau sq",ylab="",
-xlim=c(100,nrow(m.1$p.theta.samples)),ylim=c(0,1))
-ts.plot(m.1$p.theta.samples[,3],main="phi",ylab="",
-xlim=c(50,nrow(m.1$p.theta.samples)))
+ts.plot(m.temp.16$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.temp.16$p.theta.samples)),ylim=c(0,4))
+ts.plot(m.temp.16$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.temp.16$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.temp.16$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.temp.16$p.theta.samples)))
 
 ##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
 
-coeff <- t(apply( m.1$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
-se    <- apply( m.1$p.sigma.eta.samples, 2, sd )
+coeff <- t(apply( m.temp.16$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.temp.16$p.sigma.eta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+
+#########################2016 Relative Humidity
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.rh.16$p.samples[,"phi"] <- 3/m.rh.16$p.samples[,"phi"]
+
+coeff <- t(apply( m.rh.16$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.rh.16$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016.csv")
+saveRDS(m.rh.16, "../05AnalysisOutputs/SpDynLM_RelHum2016.rds")
+
+#spatial random effects
+##need to check the order, may be tau then sigma then phi
+ts.plot(m.rh.16$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.rh.16$p.theta.samples)),ylim=c(0,4))
+ts.plot(m.rh.16$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.rh.16$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.rh.16$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.rh.16$p.theta.samples)))
+
+##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+
+coeff <- t(apply( m.rh.16$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.rh.16$p.sigma.eta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+```
+
+## Run models for MHW year
+
+Now we get into 2017 and do the same as above
+
+```{r regs 2017}
+
+#Temperature
+##get the models
+mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
+
+#run the model
+m.temp.17 <- spDynLM(mods, data=ReOrg_Temp17, coords=st_coordinates(coords_UTM),
+               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+
+##Relative humidity
+m.rh.17 <- spDynLM(mods, data=ReOrg_RH17, coords=st_coordinates(coords_UTM),
+               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+```
+
+
+Now visualize the outputs
+
+```{r 2017 outputs}
+
+###############2016 temperature
+#Jim's way of calculating
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.temp.17$p.samples[,"phi"] <- 3/m.temp.17$p.samples[,"phi"]
+
+coeff <- t(apply( m.temp.17$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.temp.17$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017.csv")
+saveRDS(m.temp.17, "../05AnalysisOutputs/SpDynLM_Temp2017.rds")
+
+#spatial random effects
+##need to check the order, may be tau then sigma then phi
+ts.plot(m.temp.17$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.temp.17$p.theta.samples)),ylim=c(0,4))
+ts.plot(m.temp.17$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.temp.17$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.temp.17$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.temp.17$p.theta.samples)))
+
+##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+
+coeff <- t(apply( m.temp.17$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.temp.17$p.sigma.eta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+
+#########################2017 Relative Humidity
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.rh.17$p.samples[,"phi"] <- 3/m.rh.17$p.samples[,"phi"]
+
+coeff <- t(apply( m.rh.17$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.rh.17$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017.csv")
+saveRDS(m.rh.17, "../05AnalysisOutputs/SpDynLM_RelHum2017.rds")
+
+#spatial random effects
+##need to check the order, may be tau then sigma then phi
+ts.plot(m.rh.17$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.rh.17$p.theta.samples)),ylim=c(0,4))
+ts.plot(m.rh.17$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.rh.17$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.rh.17$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.rh.17$p.theta.samples)))
+
+##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+
+coeff <- t(apply( m.rh.17$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.rh.17$p.sigma.eta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
