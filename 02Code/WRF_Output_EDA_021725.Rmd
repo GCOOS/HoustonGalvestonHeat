@@ -228,7 +228,7 @@ ggplot(AfternoonMeans17_2, aes(x=Dist2Ocean, y=RelHumid, color=as.factor(hour)))
 
 See if the spatial random effects approach is worth it
 
-```{r variogram}
+```{r variogram temp}
 #Pick an hour of data to look at to make this a bit simpler
 #thinking 17 since it is kind of between the shift in aft to evening temps
 MidAftTemp16 <- HourlyMeans16[HourlyMeans16$hour == 17,]
@@ -240,10 +240,10 @@ plot(varDatTemp16)
 
 v1Temp16 <- variog(varDatTemp16, trend="1st", option="bin")
 plot(v1Temp16)
-v1Temp16.c <- variog(varDatTemp16, op="cloud")
+#v1Temp16.c <- variog(varDatTemp16, op="cloud")
 v1Temp16.bc <- variog(varDatTemp16, bin.cloud=TRUE)
 
-plot(v1Temp16.c, main="variogram cloud 2016 Temp")
+#plot(v1Temp16.c, main="variogram cloud 2016 Temp")
 plot(v1Temp16.bc, bin.cloud=TRUE, main="clouds for binned variogram 2016 Temp")
 
 ##variogram for temp 2017
@@ -252,38 +252,39 @@ plot(varDatTemp17)
 
 v1Temp17 <- variog(varDatTemp17, trend="1st", option="bin")
 plot(v1Temp17)
-v1Temp17.c <- variog(varDatTemp17, op="cloud")
+#v1Temp17.c <- variog(varDatTemp17, op="cloud")
 v1Temp17.bc <- variog(varDatTemp17, bin.cloud=TRUE)
 
-plot(v1Temp17.c, main="variogram cloud 2017 Temp")
+#plot(v1Temp17.c, main="variogram cloud 2017 Temp")
 plot(v1Temp17.bc, bin.cloud=TRUE, main="clouds for binned variogram 2017 Temp")
 
+```
 
+
+```{r variogram rh}
 
 #variograms for RH - 2016
-varDatRH16 <- as.geodata(MidAftRH16, coords.col = 2:3, data.col=6)
+varDatRH16 <- as.geodata(MidAftTemp16, coords.col = 2:3, data.col=6)
 plot(varDatRH16)
 
 v1RH16 <- variog(varDatRH16, trend="1st", option="bin")
 plot(v1RH16)
-v1RH16.c <- variog(varDatRH16, op="cloud")
+#v1RH16.c <- variog(varDatRH16, op="cloud")
 v1RH16.bc <- variog(varDatRH16, bin.cloud=TRUE)
 
-plot(v1RH16.c, main="variogram cloud 2016 Relative Humidity")
+#plot(v1RH16.c, main="variogram cloud 2016 Relative Humidity")
 plot(v1RH16.bc, bin.cloud=TRUE, main="clouds for binned variogram 2016 Relative Humidity")
 
-
-
 #varigrams for RH 2017
-varDatRH17 <- as.geodata(MidAftRH17, coords.col = 2:3, data.col=6)
+varDatRH17 <- as.geodata(MidAftTemp17, coords.col = 2:3, data.col=6)
 plot(varDatRH17)
 
 v1RH17 <- variog(varDatRH17, trend="1st", option="bin")
 plot(v1RH17)
-v1RH17.c <- variog(varDatRH17, op="cloud")
+#v1RH17.c <- variog(varDatRH17, op="cloud")
 v1RH17.bc <- variog(varDatRH17, bin.cloud=TRUE)
 
-plot(v1RH17.c, main="variogram cloud 2017 Relative Humidity")
+#plot(v1RH17.c, main="variogram cloud 2017 Relative Humidity")
 plot(v1RH17.bc, bin.cloud=TRUE, main="clouds for binned variogram 2017 Relative Humidity")
 
 ```
