@@ -11,6 +11,7 @@ This is part of an initiative with GCOOS, started in the fall of 2024 and still 
 * 02Code: contains the data analysis and management codes. The Python codes are primarily for reformatting wrfout files and for some basic vualizations. The R codes are for exploratory data analysis and spatial mixed-effects regressions
 * 03ProcessedData: Outputs from data cleaning codes in the previous folder, used in data analysis. Again, many are too large to currently appear in the GitHub repository
 * 04Visuals: Figures and other visuals from exploratory data analysis or more in-depth analysis
+* 05AnalysisOutputs: Spreadsheets or rds files that contain the results of regression analyses (model parameter estimates, etc.)
 
 ## Contributing
 Since the project is in its early stages and the outputs are primarily data analysis and not applications, please contact renata.kamakura@gcoos.org if you would like to contribute.
