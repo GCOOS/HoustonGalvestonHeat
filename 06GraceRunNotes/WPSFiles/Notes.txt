@@ -1,0 +1,7 @@
+Note for WPS files: 
+
+Since you are using ERA5 data, you need to run ungrib twice, once for the pl and once for the ml (or sfc) data. There are two different Vtables for each of those. 
+
+In the most recent run, I have separate high-resolution SST. As a result, I removed the SST from the era5-ml Vtable because otherwise the two SST data conflict and metgrid crashes. 
+
+For reference, I have kept the information on what the intermediate files contain assuming you keep the SST in the era5-ml so you can get a better sense of the datasets if needed (and, particularly, the differences in the SST datasets).
