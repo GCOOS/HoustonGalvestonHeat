@@ -344,8 +344,6 @@ priors17 <- list("beta.0.Norm"=list(rep(0,p17), diag(1000,p17c)),
 
 ```
 
-RESTART UPDATING FROM HERE
-
 Now actually run the regression
 
 Temperature should be fine this way, but relative humdity is bounded between 0 and 100. If we don't get close to the ends we may be able to pretend it is approximately continuous but need to check that with the EDA first. 
@@ -392,8 +390,8 @@ se    <- apply( m.temp.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016.csv")
-saveRDS(m.temp.16, "../../05AnalysisOutputs/SpDynLM_Temp2016.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016_042425.csv")
+saveRDS(m.temp.16, "../../05AnalysisOutputs/SpDynLM_Temp2016_042425.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -422,8 +420,8 @@ se    <- apply( m.rh.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016.csv")
-saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016_042425.csv")
+saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016_042425.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -475,8 +473,8 @@ se    <- apply( m.temp.17$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017.csv")
-saveRDS(m.temp.17, "../../05AnalysisOutputs/SpDynLM_Temp2017.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_042425.csv")
+saveRDS(m.temp.17, "../../05AnalysisOutputs/SpDynLM_Temp2017_042425.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -505,8 +503,8 @@ se    <- apply( m.rh.17$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017.csv")
-saveRDS(m.rh.17, "../../05AnalysisOutputs/SpDynLM_RelHum2017.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_042425.csv")
+saveRDS(m.rh.17, "../../05AnalysisOutputs/SpDynLM_RelHum2017_042425.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -523,5 +521,78 @@ xlim=c(50,nrow(m.rh.17$p.theta.samples)))
 # se    <- apply( m.rh.17$p.sigma.eta.samples, 2, sd )
 # coeff <- cbind( coeff[,1], se, coeff[,2:3])
 # print( signif(coeff, 3) )
+
+```
+
+#Now do it for simulated 2017
+```{r regs 2017 simlated}
+
+#Temperature
+##get the models
+mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
+
+#run the model
+m.temp.17c <- spDynLM(mods, data=ReOrg_Temp17_cavg, coords=st_coordinates(coords_UTM),
+               starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+
+##Relative humidity
+m.rh.17c <- spDynLM(mods, data=ReOrg_RH17_cavg, coords=st_coordinates(coords_UTM),
+               starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+```
+
+
+Now visualize the outputs
+
+```{r 2017 outputs}
+
+###############2017 temperature
+#Jim's way of calculating
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.temp.17c$p.samples[,"phi"] <- 3/m.temp.17c$p.samples[,"phi"]
+
+coeff <- t(apply( m.temp.17c$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.temp.17c$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_ClimAvg.csv")
+saveRDS(m.temp.17c, "../../05AnalysisOutputs/SpDynLM_Temp2017_ClimAvg.rds")
+
+#spatial random effects
+##need to check the order, may be tau then sigma then phi
+ts.plot(m.temp.17c$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.temp.17c$p.theta.samples)),ylim=c(0,4))
+ts.plot(m.temp.17c$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.temp.17c$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.temp.17c$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.temp.17c$p.theta.samples)))
+
+##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+
+#########################2017 Relative Humidity
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.rh.17c$p.samples[,"phi"] <- 3/m.rh.17c$p.samples[,"phi"]
+
+coeff <- t(apply( m.rh.17c$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.rh.17c$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_ClimAvg_042425.csv")
+saveRDS(m.rh.17c, "../../05AnalysisOutputs/SpDynLM_RelHum2017_ClimAvg_042425.rds")
+
+#spatial random effects
+##need to check the order, may be tau then sigma then phi
+ts.plot(m.rh.17c$p.theta.samples[,1],main="sigma sq",ylab="",
+xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,50))
+ts.plot(m.rh.17c$p.theta.samples[,2],main="tau sq",ylab="",
+xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,1))
+ts.plot(m.rh.17c$p.theta.samples[,3],main="phi",ylab="",
+xlim=c(50,nrow(m.rh.17c$p.theta.samples)))
 
 ```
