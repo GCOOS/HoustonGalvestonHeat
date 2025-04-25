@@ -290,7 +290,7 @@ Documentation: https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
 
 #Figure out what parameters you need
 N.t <- length(HoursOfInterest) #number of hours we are working with
-n.samples <- 5000 #for the MCMC
+n.samples <- 2000 #for the MCMC
 
 #these should be the same for 2016 and 2017 but worth checking separately anyway
 p16 <- (length(unique(HourlyMeans16$LandUse))) + 1 #number of predictors, have to account for categorical land use
