@@ -1,7 +1,21 @@
-Note for WPS files: 
+#######Notes on GRACE Files
 
-Since you are using ERA5 data, you need to run ungrib twice, once for the pl and once for the ml (or sfc) data. There are two different Vtables for each of those. 
+These files are useful for running the WPS and WRF systems on the TAMU HPRC's GRACE cluster as of April 2025. The files are split into three groups
+* WPS files (for the pre-processing system)
+* WRF files (for the WRF model runs)
+* Slurm files (job files to run the processes in parallel on the cluster)
 
-In the most recent run, I have separate high-resolution SST. As a result, I removed the SST from the era5-ml Vtable because otherwise the two SST data conflict and metgrid crashes. 
 
-For reference, I have kept the information on what the intermediate files contain assuming you keep the SST in the era5-ml so you can get a better sense of the datasets if needed (and, particularly, the differences in the SST datasets).
+###Notes for WPS files: 
+
+Since you are using ERA5 data, you need to run ungrib twice, once for the pl and once for the ml (or sfc) data. There are two different Vtables for each of those. When you actually use it on the cluster, you need to change the name to just "Vtable" without any of the endings. You will also need to modify the prefix variable in the ungrib section of the namelist.wps file for each run. In this case, the prefix PL is for the pressure level files (corresponding to the Vtable.pl) and the SFC prefix is for the surface level files (corresponding to the Vtable.ml file). So, when you are ready to run ungrib for a specific ERA5 datafile (either pressure level or surface level), you first need to link the right gribfiles to the WPS folder using the ./link_grib.csh file, then you need to make sure the right prefix is listed in the ungrib section of the namelist.wps file, then you need to make sure the right Vtable is in the WPS folder, with the right name (just "Vtable"), then you can run ungrib. More details here: http://climate-cms.wikis.unsw.edu.au/How_to_run_WRF_with_ERA-Interim_data
+
+In the most recent run, I have separate high-resolution SST. As a result, I removed the SST from the era5-ml Vtable because otherwise the two SST data conflict and metgrid crashes. This separate high-resolution SST (GHRSST) has it's own land/sea mask that you need to use to get the coastline correctly, so I added the variable "SST_mask" to the metgrid table and added some GHRSST specific changes to the SST section of the metgrid table, hence why that is included here. WPS normally pulls the METGRID.TBL file from within the ./metgrid folder, so in the namelist.wps file I set the location it should look for the METGRID.TBL file to just be the root directory (the WPS main folder). You can put the METGRID.TBL file wherever, you just need to update the opt_metgrid_tbl_path variable in the metgrid section of the namelist.wps file. 
+
+For reference, I have kept the information on what the intermediate files contain assuming you keep the SST in the era5-ml so you can get a better sense of the datasets if needed.
+
+###Notes for WRF files:
+Most of the modified files for WRF come from the WPS system (the wrflowinp files and so forth). The main other file is the namelist.input file, which is included here. You will want to put this file in either the ./test/em_real folder or the ./run folder, you can run the real.exe and wrf.exe from either folder. The job files I have currently use the ./run folder. 
+
+###Notes for the Slurm files:
+You can get away with running some of these on the login nodes, but others take way too long to run there. geogrid.exe and ungrib.exe are pretty fast so those are fine on the login node. I have found that metgrid can take quite a while and so may make more sense on the compute nodes. Real.exe is borderline, and then wrf.exe takes forever (as in several days). 

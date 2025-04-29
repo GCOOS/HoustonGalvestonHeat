@@ -1,0 +1,41 @@
+&share
+ wrf_core = 'ARW',
+ max_dom = 2,
+ start_date = '2017-03-23_00:00:00','2017-03-23_00:00:00',
+ end_date   = '2017-04-03_00:00:00','2017-04_03_00:00:00',
+ interval_seconds = 10800
+ io_form_geogrid = 2,
+ nocolons = .true.
+
+/
+
+&geogrid
+ parent_id         =   1,   1,
+ parent_grid_ratio =   1,   5,
+ i_parent_start    =   1,  37,
+ j_parent_start    =   1,  75,
+ e_we              =  329, 231,
+ e_sn              =  151, 226,
+ geog_data_res     = '10s','10s',
+ dx = 5000,
+ dy = 5000,
+ map_proj = 'mercator',
+ ref_lat   =  28.746,
+ ref_lon   = -90.0,
+ truelat1  =  27.85,
+ truelat2  =  27.85,
+ stand_lon = 0,
+ geog_data_path = '../GeographicData/WPS_GEOG'
+/
+
+
+&ungrib
+ out_format = 'WPS',
+ prefix = 'PL',
+/
+
+&metgrid
+ fg_name = 'SFC','PL','SST',
+ io_form_metgrid = 2,
+ opt_metgrid_tbl_path = './'
+/
