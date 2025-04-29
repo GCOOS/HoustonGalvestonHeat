@@ -5,6 +5,14 @@ These files are useful for running the WPS and WRF systems on the TAMU HPRC's GR
 * WRF files (for the WRF model runs)
 * Slurm files (job files to run the processes in parallel on the cluster)
 
+###Version notes
+Right now we have used WPS version 4.4 and WRF version 4.6.0. The modules used are listed within the metgrid.job file (for WPS) and the wrfrun.job file (for WRF) in the SlurmFiles folder. You do need to set some environment variables, especially for WPS, for the processes to run correctly, so be aware of that. 
+
+You will also need to copy over versions of WPS and WRF into your scratch directory for this to work. For WPS, I just ran 
+
+ln -fs /sw/eb/sw/WPS/4.4-foss-2022a-dmpar/WPS-4.4/* .
+
+Once you created a host WPS folder and have loaded the foss/2022a module and the WPS/4.4-dmpar module. This linking means some folders/files are not editable, so you will need to then later upload various files that I modified (they will come up below, but include METGRID.TBL, namelist.wps, Vtable). The WRF folder I got from Dr. Dan Fu at TAMU, but is also something you can ask for help from HPRC staff for if needed. In this case, I copied the entire folder rather than just linking it. 
 
 ###Notes for WPS files: 
 
