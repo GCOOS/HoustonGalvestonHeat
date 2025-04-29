@@ -12,6 +12,7 @@ This is part of an initiative with GCOOS, started in the fall of 2024 and still 
 * 03ProcessedData: Outputs from data cleaning codes in the previous folder, used in data analysis. Again, many are too large to currently appear in the GitHub repository
 * 04Visuals: Figures and other visuals from exploratory data analysis or more in-depth analysis
 * 05AnalysisOutputs: Spreadsheets or rds files that contain the results of regression analyses (model parameter estimates, etc.)
+* 06GraceRunNotes: Files and some notes that are useful for running the WPS and WRF systems on TAMU HPRC's GRACE cluster specifically for our model runs
 
 ## Contributing
 Since the project is in its early stages and the outputs are primarily data analysis and not applications, please contact renata.kamakura@gcoos.org if you would like to contribute.
