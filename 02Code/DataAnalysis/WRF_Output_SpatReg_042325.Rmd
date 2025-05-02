@@ -14,8 +14,13 @@ library(spBayes) #spatial random effects
 library(sf)
 library(sp)
 library(dplyr)
+#library(parallel) #make it run faster
 
 library(RANN) #for knots
+
+# Calculate the number of cores
+no_cores <- 3
+
 ```
 
 ##Read in data
@@ -27,7 +32,7 @@ Creating the LU dictionary to simplify the land use categories a bit for the run
 #Likely will need to update the files here once re-run with all the data and spin-up
 HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_042225.csv")
 HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_042225.csv")
-HourlyMeans17_cavg <- read.csv("../../03ProcessedData/HourlyMeans_2017_042225.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_042225.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
@@ -128,21 +133,21 @@ Now that we have some spatial dimension reduction, re-organize the data into the
 #reduce your landuse categories
 HourlyMeans16$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
 HourlyMeans17$LandUse <- LU_dict$New_Name[HourlyMeans17$LandUse]
-HourlyMeans17_cavg$LandUse <- LU_dict$New_Name[HourlyMeans17_cavg$LandUse]
+HourlyMeans17_msst$LandUse <- LU_dict$New_Name[HourlyMeans17_msst$LandUse]
 
 #Should set your baseline land use - maybe to forest?
 HourlyMeans16$LandUse <- as.factor(HourlyMeans16$LandUse)
 HourlyMeans16$LandUse <- relevel(HourlyMeans16$LandUse, ref="Crop")
 HourlyMeans17$LandUse <- as.factor(HourlyMeans17$LandUse)
 HourlyMeans17$LandUse <- relevel(HourlyMeans17$LandUse, ref="Crop")
-HourlyMeans17_cavg$LandUse <- as.factor(HourlyMeans17_cavg$LandUse)
-HourlyMeans17_cavg$LandUse <- relevel(HourlyMeans17_cavg$LandUse, ref="Crop")
+HourlyMeans17_msst$LandUse <- as.factor(HourlyMeans17_msst$LandUse)
+HourlyMeans17_msst$LandUse <- relevel(HourlyMeans17_msst$LandUse, ref="Crop")
 
 HoursOfInterest <- 12:21 #partly from EDA, basically going from approaching peak temps and down into the evening and the start of cool-down
 
 n16 <- length(unique(HourlyMeans16$GridCell)) #observations per hour
 n17 <- length(unique(HourlyMeans17$GridCell)) #observations per hour
-n17c <- length(unique(HourlyMeans17_cavg$GridCell)) #observations per hour
+n17c <- length(unique(HourlyMeans17_msst$GridCell)) #observations per hour
 
 ################################2016: Non-MHW
 #Re-organize 2016 - Temperature
@@ -238,47 +243,47 @@ names(ReOrg_RH17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "
 ############################# 2017: MHW - CLIMATOLOGICALLY AVERAGE SST
 #Re-organize 2017 - Temperature
 #columns are one for each hour, one for distance2ocean, and one for land use
-ReOrg_Temp17_cavg <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17c))
+ReOrg_Temp17_msst <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17c))
 
-HourlyMeans17_cavg <- HourlyMeans17_cavg[order(HourlyMeans17_cavg$GridCell),] #make sure the order is consistent so you know which points are which
+HourlyMeans17_msst <- HourlyMeans17_msst[order(HourlyMeans17_msst$GridCell),] #make sure the order is consistent so you know which points are which
 
 #Get your hourly temps - response
-ReOrg_Temp17_cavg[,1] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 12]
-ReOrg_Temp17_cavg[,2] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 13]
-ReOrg_Temp17_cavg[,3] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 14]
-ReOrg_Temp17_cavg[,4] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 15]
-ReOrg_Temp17_cavg[,5] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 16]
-ReOrg_Temp17_cavg[,6] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 17]
-ReOrg_Temp17_cavg[,7] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 18]
-ReOrg_Temp17_cavg[,8] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 19]
-ReOrg_Temp17_cavg[,9] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 20]
-ReOrg_Temp17_cavg[,10] <- HourlyMeans17_cavg$X2mTemp[HourlyMeans17_cavg$hour == 21]
+ReOrg_Temp17_msst[,1] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 12]
+ReOrg_Temp17_msst[,2] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 13]
+ReOrg_Temp17_msst[,3] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 14]
+ReOrg_Temp17_msst[,4] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 15]
+ReOrg_Temp17_msst[,5] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 16]
+ReOrg_Temp17_msst[,6] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 17]
+ReOrg_Temp17_msst[,7] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 18]
+ReOrg_Temp17_msst[,8] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 19]
+ReOrg_Temp17_msst[,9] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 20]
+ReOrg_Temp17_msst[,10] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 21]
 
 #Get your fixed effects
-ReOrg_Temp17_cavg[,11] <- HourlyMeans17_cavg$Dist2Ocean[HourlyMeans17_cavg$hour == 12]
-ReOrg_Temp17_cavg[,12] <- HourlyMeans17_cavg$LandUse[HourlyMeans17_cavg$hour == 12]
-names(ReOrg_Temp17_cavg) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+ReOrg_Temp17_msst[,11] <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 12]
+ReOrg_Temp17_msst[,12] <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 12]
+names(ReOrg_Temp17_msst) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 
 #re-organize 2017 humidity
-ReOrg_RH17_cavg <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17c))
+ReOrg_RH17_msst <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17c))
 
 #Get your hourly temps - response
-ReOrg_RH17_cavg[,1] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 12]
-ReOrg_RH17_cavg[,2] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 13]
-ReOrg_RH17_cavg[,3] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 14]
-ReOrg_RH17_cavg[,4] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 15]
-ReOrg_RH17_cavg[,5] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 16]
-ReOrg_RH17_cavg[,6] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 17]
-ReOrg_RH17_cavg[,7] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 18]
-ReOrg_RH17_cavg[,8] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 19]
-ReOrg_RH17_cavg[,9] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 20]
-ReOrg_RH17_cavg[,10] <- HourlyMeans17_cavg$RelHumid[HourlyMeans17_cavg$hour == 21]
+ReOrg_RH17_msst[,1] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 12]
+ReOrg_RH17_msst[,2] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 13]
+ReOrg_RH17_msst[,3] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 14]
+ReOrg_RH17_msst[,4] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 15]
+ReOrg_RH17_msst[,5] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 16]
+ReOrg_RH17_msst[,6] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 17]
+ReOrg_RH17_msst[,7] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 18]
+ReOrg_RH17_msst[,8] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 19]
+ReOrg_RH17_msst[,9] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 20]
+ReOrg_RH17_msst[,10] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 21]
 
 #Get your fixed effects
-ReOrg_RH17_cavg[,11] <- HourlyMeans17_cavg$Dist2Ocean[HourlyMeans17_cavg$hour == 12]
-ReOrg_RH17_cavg[,12] <- HourlyMeans17_cavg$LandUse[HourlyMeans17_cavg$hour == 12]
-names(ReOrg_RH17_cavg) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+ReOrg_RH17_msst[,11] <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 12]
+ReOrg_RH17_msst[,12] <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 12]
+names(ReOrg_RH17_msst) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 ```
 
@@ -295,7 +300,7 @@ n.samples <- 2000 #for the MCMC
 #these should be the same for 2016 and 2017 but worth checking separately anyway
 p16 <- (length(unique(HourlyMeans16$LandUse))) + 1 #number of predictors, have to account for categorical land use
 p17 <- (length(unique(HourlyMeans17$LandUse))) + 1 #number of predictors, have to account for categorical land use
-p17c <- (length(unique(HourlyMeans17_cavg$LandUse))) + 1 #number of predictors, have to account for categorical land use
+p17c <- (length(unique(HourlyMeans17_msst$LandUse))) + 1 #number of predictors, have to account for categorical land use
 
 ##starting and priors
 x.d <- max(iDist(st_coordinates(coords_UTM)))
@@ -330,13 +335,13 @@ priors17 <- list("beta.0.Norm"=list(rep(0,p17), diag(1000,p17)),
                "sigma.eta.IW"=list(2, diag(0.001,p17)))
 
 ## 2017
-tuning17 <- list("phi" = rep(0.1, N.t))
+tuning17c <- list("phi" = rep(0.1, N.t))
 
-starting17 <-list("beta"=rep(0,N.t*p17c), "phi"=rep(3/(0.5*x.d), N.t),
+starting17c <-list("beta"=rep(0,N.t*p17c), "phi"=rep(3/(0.5*x.d), N.t),
                  "sigma.sq"=rep(1,N.t), "tau.sq"=rep(1, N.t),
                  "sigma.eta"=diag(rep(0.01, p17c)))
 
-priors17 <- list("beta.0.Norm"=list(rep(0,p17), diag(1000,p17c)),
+priors17c <- list("beta.0.Norm"=list(rep(0,p17c), diag(1000,p17c)),
                "phi.Unif"=list(rep(3/(0.9*x.d),N.t), rep(3/(0.001*x.d),N.t)),
                "sigma.sq.IG"=list(rep(2,N.t), rep(10,N.t)),
                "tau.sq.IG"=list(rep(2,N.t), rep(10,N.t)),
@@ -390,8 +395,8 @@ se    <- apply( m.temp.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016_042425.csv")
-saveRDS(m.temp.16, "../../05AnalysisOutputs/SpDynLM_Temp2016_042425.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016_050225.csv")
+saveRDS(m.temp.16, "../../05AnalysisOutputs/SpDynLM_Temp2016_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -420,8 +425,8 @@ se    <- apply( m.rh.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016_042425.csv")
-saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016_042425.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016_050225.csv")
+saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -473,8 +478,8 @@ se    <- apply( m.temp.17$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_042425.csv")
-saveRDS(m.temp.17, "../../05AnalysisOutputs/SpDynLM_Temp2017_042425.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_050225.csv")
+saveRDS(m.temp.17, "../../05AnalysisOutputs/SpDynLM_Temp2017_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -503,8 +508,8 @@ se    <- apply( m.rh.17$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_042425.csv")
-saveRDS(m.rh.17, "../../05AnalysisOutputs/SpDynLM_RelHum2017_042425.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_050225.csv")
+saveRDS(m.rh.17, "../../05AnalysisOutputs/SpDynLM_RelHum2017_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -527,19 +532,30 @@ xlim=c(50,nrow(m.rh.17$p.theta.samples)))
 #Now do it for simulated 2017
 ```{r regs 2017 simlated}
 
+#this should work for both datasets
+nobs <- length(HourlyMeans17_msst$GridCell) #number of observations
+coords <- HourlyMeans17_msst[, c("GridCell", "lat", "long")] #points of the observations
+names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
+coords <- unique(coords)
+
+#change your coordinates to UTM so the distances are consistent
+coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
+coords_UTM <- st_transform(coords_sf, CRS("+proj=utm +zone=15 ellps=WGS84"))
+
+
 #Temperature
 ##get the models
 mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
 
 #run the model
-m.temp.17c <- spDynLM(mods, data=ReOrg_Temp17_cavg, coords=st_coordinates(coords_UTM),
-               starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
+m.temp.17c <- spDynLM(mods, data=ReOrg_Temp17_msst, coords=st_coordinates(coords_UTM),
+               starting=starting17c, tuning=tuning17c, priors=priors17c, knots = knots,
                cov.model="exponential", n.samples=n.samples, n.report=500) 
 
 
 ##Relative humidity
-m.rh.17c <- spDynLM(mods, data=ReOrg_RH17_cavg, coords=st_coordinates(coords_UTM),
-               starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
+m.rh.17c <- spDynLM(mods, data=ReOrg_RH17_msst, coords=st_coordinates(coords_UTM),
+               starting=starting17c, tuning=tuning17c, priors=priors17c, knots = knots,
                cov.model="exponential", n.samples=n.samples, n.report=500) 
 ```
 
@@ -559,8 +575,8 @@ se    <- apply( m.temp.17c$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_ClimAvg.csv")
-saveRDS(m.temp.17c, "../../05AnalysisOutputs/SpDynLM_Temp2017_ClimAvg.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_w16SST_050225.csv")
+saveRDS(m.temp.17c, "../../05AnalysisOutputs/SpDynLM_Temp2017_w16SST_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -583,8 +599,8 @@ se    <- apply( m.rh.17c$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_ClimAvg_042425.csv")
-saveRDS(m.rh.17c, "../../05AnalysisOutputs/SpDynLM_RelHum2017_ClimAvg_042425.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_w16SST_050225.csv")
+saveRDS(m.rh.17c, "../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
