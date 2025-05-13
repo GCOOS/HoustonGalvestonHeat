@@ -383,6 +383,7 @@ m.rh.16 <- spDynLM(mods, data=ReOrg_RH16, coords=st_coordinates(coords_UTM),
 
 
 ```{r 2016 outputs}
+#n.samples <- 2000
 
 ###############2016 temperature
 #Jim's way of calculating
@@ -427,6 +428,7 @@ print( signif(coeff, 3) )
 
 write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016_050225.csv")
 saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016_050225.rds")
+#m.rh.16 <- readRDS("../../05AnalysisOutputs/SpDynLM_RelHum2016_050225.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -601,6 +603,7 @@ print( signif(coeff, 3) )
 
 write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_w16SST_050225.csv")
 saveRDS(m.rh.17c, "../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds")
+#m.rh.17c <- readRDS('../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds')
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
