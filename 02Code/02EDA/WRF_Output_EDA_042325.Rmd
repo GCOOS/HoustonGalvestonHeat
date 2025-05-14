@@ -347,7 +347,7 @@ MidAftTemp17c <- HourlyMeans17_msst[HourlyMeans17_msst$hour == 17,]
 
 ##start to look at varigra
 
-ms for temp - 2016
+#for temp - 2016
 varDatTemp16 <- as.geodata(MidAftTemp16, coords.col = 2:3, data.col=5)
 plot(varDatTemp16)
 
@@ -492,12 +492,12 @@ Now plot out our results so we can look at it a bit more clearly
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp17m16), group=LandUse)) + 
   geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Minus 2016 Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 6))
+   coord_cartesian(ylim = c(-1, 6)) + theme_minimal() 
 
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp17m17s), group=LandUse)) + 
   geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Minus Simulated 2017 Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 6))
+   coord_cartesian(ylim = c(-1, 6))  + theme_minimal() 
 
 
 ####to figure out what is happening at 1pm
