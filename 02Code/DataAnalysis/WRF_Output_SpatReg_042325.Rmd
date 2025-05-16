@@ -27,6 +27,9 @@ no_cores <- 3
 
 Creating the LU dictionary to simplify the land use categories a bit for the run, we are not as worried about subtleties of LU impacts
 
+For calculating wind direction: https://stackoverflow.com/questions/21484558/how-to-calculate-wind-direction-from-u-and-v-wind-components-in-r
+https://confluence.ecmwf.int/pages/viewpage.action?pageId=133262398 
+
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
