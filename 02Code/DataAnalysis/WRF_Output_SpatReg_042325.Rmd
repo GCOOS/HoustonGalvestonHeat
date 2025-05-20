@@ -33,9 +33,9 @@ https://confluence.ecmwf.int/pages/viewpage.action?pageId=133262398
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
-HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_042225.csv")
-HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_042225.csv")
-HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_042225.csv")
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_051325.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_051325.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_051325.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
@@ -94,8 +94,11 @@ If you do spDynLm I think you end up with different regressions for each hour
 ```{r create knots}
 
 #this should work for both datasets
-nobs <- length(HourlyMeans17$GridCell) #number of observations
-coords <- HourlyMeans17[, c("GridCell", "lat", "long")] #points of the observations
+#nobs <- length(HourlyMeans17$GridCell) #number of observations
+#coords <- HourlyMeans17[, c("GridCell", "lat", "long")] #points of the observations
+
+nobs <- length(HourlyMeans17_msst$GridCell)
+coords <- HourlyMeans17_msst[, c("GridCell", "lat", "long")]
 names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
 coords <- unique(coords)
 
@@ -617,4 +620,139 @@ xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,1))
 ts.plot(m.rh.17c$p.theta.samples[,3],main="phi",ylab="",
 xlim=c(50,nrow(m.rh.17c$p.theta.samples)))
 
+```
+
+#################Wind speed
+
+```{r get data ready}
+#calculate wind speed
+HourlyMeans16$WindSpeed <- sqrt(HourlyMeans16$UWind^2 + HourlyMeans16$VWind^2)
+HourlyMeans17$WindSpeed <- sqrt(HourlyMeans17$UWind^2 + HourlyMeans17$VWind^2)
+HourlyMeans17_msst$WindSpeed <- sqrt(HourlyMeans17_msst$UWind^2 + HourlyMeans17_msst$VWind^2)
+
+#create the storage matrices
+ReOrg_WS16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow = n16))
+names(ReOrg_WS16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+ReOrg_WS17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow = n17))
+names(ReOrg_WS17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+ReOrg_WS17s <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow = n17c))
+names(ReOrg_WS17s) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+
+
+#Fill the storage matrices - 2016
+ReOrg_WS16[,1] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 12]
+ReOrg_WS16[,2] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 13]
+ReOrg_WS16[,3] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 14]
+ReOrg_WS16[,4] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 15]
+ReOrg_WS16[,5] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 16]
+ReOrg_WS16[,6] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 17]
+ReOrg_WS16[,7] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 18]
+ReOrg_WS16[,8] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 19]
+ReOrg_WS16[,9] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 20]
+ReOrg_WS16[,10] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 21]
+ReOrg_WS16$Dist2Ocean <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 12]
+ReOrg_WS16$LandUse <- HourlyMeans16$LandUse[HourlyMeans16$hour == 12]
+
+
+#Fill the storage matrices - 2017
+ReOrg_WS17[,1] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 12]
+ReOrg_WS17[,2] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 13]
+ReOrg_WS17[,3] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 14]
+ReOrg_WS17[,4] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 15]
+ReOrg_WS17[,5] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 16]
+ReOrg_WS17[,6] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 17]
+ReOrg_WS17[,7] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 18]
+ReOrg_WS17[,8] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 19]
+ReOrg_WS17[,9] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 20]
+ReOrg_WS17[,10] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 21]
+ReOrg_WS17$Dist2Ocean <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 12]
+ReOrg_WS17$LandUse <- HourlyMeans17$LandUse[HourlyMeans17$hour == 12]
+
+
+#Fill the storage matrices - 2017 Simulation
+ReOrg_WS17s[,1] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 12]
+ReOrg_WS17s[,2] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 13]
+ReOrg_WS17s[,3] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 14]
+ReOrg_WS17s[,4] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 15]
+ReOrg_WS17s[,5] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 16]
+ReOrg_WS17s[,6] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 17]
+ReOrg_WS17s[,7] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 18]
+ReOrg_WS17s[,8] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 19]
+ReOrg_WS17s[,9] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 20]
+ReOrg_WS17s[,10] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 21]
+ReOrg_WS17s$Dist2Ocean <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 12]
+ReOrg_WS17s$LandUse <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 12]
+```
+
+
+```{r regs WS}
+
+#Temperature
+##get the models
+mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
+
+#run the model
+m.ws.16 <- spDynLM(mods, data=ReOrg_WS16, coords=st_coordinates(coords_UTM),
+               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+m.ws.17 <- spDynLM(mods, data=ReOrg_WS17, coords=st_coordinates(coords_UTM),
+               starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+m.ws.17.s <- spDynLM(mods, data=ReOrg_WS17s, coords=st_coordinates(coords_UTM),
+               starting=starting17c, tuning=tuning17c, priors=priors17c, knots = knots,
+               cov.model="exponential", n.samples=n.samples, n.report=500) 
+
+```
+
+Now save the outputs
+
+```{r 2017 outputs}
+
+###############2016 wind speed
+#Jim's way of calculating
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.ws.16$p.samples[,"phi"] <- 3/m.ws.16$p.samples[,"phi"]
+
+coeff <- t(apply( m.ws.16$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.ws.16$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed16_051925.csv")
+saveRDS(m.ws.16, "../../05AnalysisOutputs/SpDynLM_WindSpeed16_05192.rds")
+
+
+###############2017 wind speed
+#Jim's way of calculating
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.ws.17$p.samples[,"phi"] <- 3/m.ws.17$p.samples[,"phi"]
+
+coeff <- t(apply( m.ws.17$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.ws.17$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed17_051925.csv")
+saveRDS(m.ws.17, "../../05AnalysisOutputs/SpDynLM_WindSpeed17_05192.rds")
+
+
+###############2017 simulated wind speed
+#Jim's way of calculating
+burn.in   <- 0.75*n.samples
+sub.samps <- burn.in:n.samples
+m.ws.17.s$p.samples[,"phi"] <- 3/m.ws.17.s$p.samples[,"phi"]
+
+coeff <- t(apply( m.ws.17.s$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+se    <- apply( m.ws.17.s$p.beta.samples, 2, sd )
+coeff <- cbind( coeff[,1], se, coeff[,2:3])
+print( signif(coeff, 3) )
+
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed17_w16SST_051925.csv")
+saveRDS(m.ws.17.s, "../../05AnalysisOutputs/SpDynLM_WindSpeed17_w16SST_05192.rds")
 ```

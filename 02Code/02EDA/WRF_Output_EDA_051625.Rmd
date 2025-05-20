@@ -1,0 +1,445 @@
+---
+title: "WRF Output EDA"
+author: "Renata Poulton Kamakura"
+date: "2025-04-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(geoR) #variogram functions
+```
+
+##Read in data
+
+This is currently an incomplete run
+
+```{r read data}
+#Get the hourly averages for each year
+#Likely will need to update the files here once re-run with all the data and spin-up
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_051925.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_051925.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_051925.csv")
+
+#More for reference
+LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
+            'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest',
+            'Mixed Forests', 'Closed Shrublands',  'Open Shrublands', 
+            'Woody Savannas', 'Savannas', 'Grasslands', 
+            'Permanent wetlands', 'Croplands', 'Urban and Built-Up', 
+            'cropland/natural vegetation mosaic', 
+            'Snow and Ice', 'Barren or Sparsely Vegetated', 'Water')
+
+NewLUs <- c('Forest', 'Forest', 'Forest', 'Forest', 'Forest',
+            'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna',
+            "Shrub/Savanna", "Wetlands", "Crop", "Urban", "Crop", "Snow", 
+            "Barren", "Water")
+NewLU_nums <- c(1,1,1,1,1,2,2,2,2,2,3,4,5,4,6,7,8)
+
+LU_dict <- as.data.frame(matrix(0, nrow=17, ncol=4))
+names(LU_dict) <- c("Original_Name", "Original_Num", "New_Name", "New_Num")
+
+LU_dict$Original_Name <- LU_names
+LU_dict$Original_Num <- 1:17
+LU_dict$New_Name <- NewLUs
+LU_dict$New_Num <- NewLU_nums
+
+```
+
+##Basic EDA
+
+Ideally you want a linear mixed effects model. You can either run it with spatial random effects or use grid cell as a random intercept. My guess is that you should try running it with a spatial random effect but should try to look at the data first 
+
+From looking at this, I suspect the hourly means are not working like they should, these seem too homogenous...
+
+```{r temp EDA}
+#A little easier to mess around with
+aftHours1 <- c(12,13,14,15,16) #earlier as you get the start of the sea breeze
+aftHours2 <- c(17,18,19,20,21) #as the land starts to cool down 
+
+AfternoonMeans16_1 <- HourlyMeans16[HourlyMeans16$hour %in% aftHours1,]
+AfternoonMeans17_1 <- HourlyMeans17[HourlyMeans17$hour %in% aftHours1,]
+AfternoonMeans17c_1 <- HourlyMeans17_msst[HourlyMeans17_msst$hour %in% aftHours1,]
+
+AfternoonMeans16_2 <- HourlyMeans16[HourlyMeans16$hour %in% aftHours2,]
+AfternoonMeans17_2 <- HourlyMeans17[HourlyMeans17$hour %in% aftHours2,]
+AfternoonMeans17c_2 <- HourlyMeans17_msst[HourlyMeans17_msst$hour %in% aftHours2,]
+
+###########simplify the land use categories
+AfternoonMeans16_modLU_1 <- AfternoonMeans16_1
+AfternoonMeans16_modLU_1$LandUse <- LU_dict$New_Name[AfternoonMeans16_1$LandUse]
+AfternoonMeans16_modLU_2 <- AfternoonMeans16_2
+AfternoonMeans16_modLU_2$LandUse<- LU_dict$New_Name[AfternoonMeans16_2$LandUse]
+
+AfternoonMeans17_modLU_1 <- AfternoonMeans17_1
+AfternoonMeans17_modLU_1$LandUse <- LU_dict$New_Name[AfternoonMeans17_1$LandUse]
+AfternoonMeans17_modLU_2 <- AfternoonMeans17_2
+AfternoonMeans17_modLU_2$LandUse <- LU_dict$New_Name[AfternoonMeans17_2$LandUse] 
+
+AfternoonMeans17c_modLU_1 <- AfternoonMeans17c_1
+AfternoonMeans17c_modLU_1$LandUse <- LU_dict$New_Name[AfternoonMeans17c_1$LandUse]
+AfternoonMeans17c_modLU_2 <- AfternoonMeans17c_2
+AfternoonMeans17c_modLU_2$LandUse <- LU_dict$New_Name[AfternoonMeans17c_2$LandUse] 
+
+HourlyMeans16_modLU <- HourlyMeans16
+HourlyMeans16_modLU$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
+
+HourlyMeans17_modLU <- HourlyMeans17
+HourlyMeans17_modLU$LandUse <- LU_dict$New_Name[HourlyMeans17$LandUse]
+
+HourlyMeans17_msst_modLU <- HourlyMeans17_msst
+HourlyMeans17_msst_modLU$LandUse <- LU_dict$New_Name[HourlyMeans17_msst$LandUse]
+
+```
+
+```{r figs section 2}
+############################temp and land use + hour
+
+
+##ideally should group land use somehow
+ggplot(AfternoonMeans16_modLU_1, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Early Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")  + 
+   coord_cartesian(ylim = c(0, 25))
+
+ggplot(AfternoonMeans16_modLU_2, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Late Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")+ 
+   coord_cartesian(ylim = c(0, 25))
+
+
+ggplot(AfternoonMeans17_modLU_1, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Early Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")+ 
+   coord_cartesian(ylim = c(0, 25))
+
+ggplot(AfternoonMeans17_modLU_2, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Late Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")+ 
+   coord_cartesian(ylim = c(0, 25))
+
+
+ggplot(AfternoonMeans17c_modLU_1, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Early Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")+ 
+   coord_cartesian(ylim = c(0, 25))
+
+ggplot(AfternoonMeans17c_modLU_2, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Late Afternoon Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)")+ 
+   coord_cartesian(ylim = c(0, 25))
+
+```
+
+
+```{r humidity eda}
+
+####################Relative Humidity
+##rel humidity and land use
+ggplot(AfternoonMeans16_modLU_1, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Early Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)") + 
+   coord_cartesian(ylim = c(0, 100))
+
+ggplot(AfternoonMeans16_modLU_2, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Late Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)") + 
+   coord_cartesian(ylim = c(0, 100))
+
+
+ggplot(AfternoonMeans17_modLU_1, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Early Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)") + 
+   coord_cartesian(ylim = c(0, 100))
+
+ggplot(AfternoonMeans17_modLU_2, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Late Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)") + 
+   coord_cartesian(ylim = c(0, 100))
+
+
+
+ggplot(AfternoonMeans17c_modLU_1, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Early Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)") + 
+   coord_cartesian(ylim = c(0, 100))
+
+ggplot(AfternoonMeans17c_modLU_2, aes(x=as.factor(hour), y=RelHumid, fill=LandUse)) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Late Afternoon Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("Relative Humidity (%)") + 
+   coord_cartesian(ylim = c(0, 100))
+
+```
+
+##EDA - variogram
+
+See if the spatial random effects approach is worth it
+
+```{r variogram temp}
+#Pick an hour of data to look at to make this a bit simpler
+#thinking 17 since it is kind of between the shift in aft to evening temps
+MidAftTemp16 <- HourlyMeans16[HourlyMeans16$hour == 17,]
+MidAftTemp17 <- HourlyMeans17[HourlyMeans17$hour == 17,]
+MidAftTemp17c <- HourlyMeans17_msst[HourlyMeans17_msst$hour == 17,]
+
+##start to look at varigra
+
+#for temp - 2016
+varDatTemp16 <- as.geodata(MidAftTemp16, coords.col = 2:3, data.col=5)
+plot(varDatTemp16)
+
+# v1Temp16 <- variog(varDatTemp16, trend="1st", option="bin")
+# plot(v1Temp16)
+# #v1Temp16.c <- variog(varDatTemp16, op="cloud")
+# v1Temp16.bc <- variog(varDatTemp16, bin.cloud=TRUE)
+
+#plot(v1Temp16.c, main="variogram cloud 2016 Temp")
+plot(v1Temp16.bc, bin.cloud=TRUE, main="clouds for binned variogram 2016 Temp")
+
+##variogram for temp 2017
+varDatTemp17 <- as.geodata(MidAftTemp17, coords.col = 2:3, data.col=5)
+plot(varDatTemp17)
+
+# v1Temp17 <- variog(varDatTemp17, trend="1st", option="bin")
+# plot(v1Temp17)
+# #v1Temp17.c <- variog(varDatTemp17, op="cloud")
+# v1Temp17.bc <- variog(varDatTemp17, bin.cloud=TRUE)
+
+#plot(v1Temp17.c, main="variogram cloud 2017 Temp")
+plot(v1Temp17.bc, bin.cloud=TRUE, main="clouds for binned variogram 2017 Temp")
+
+##variogram for simulated temp 2017
+varDatTemp17c <- as.geodata(MidAftTemp17c, coords.col = 2:3, data.col=5)
+plot(varDatTemp17)
+
+# v1Temp17c <- variog(varDatTemp17c, trend="1st", option="bin")
+# plot(v1Temp17c)
+# v1Temp17c.bc <- variog(varDatTemp17c, bin.cloud=TRUE)
+# 
+# plot(v1Temp17c.bc, bin.cloud=TRUE, main="clouds for binned variogram simulated 2017 Temp")
+
+```
+
+
+##Look into wind speed
+
+To calculate wind speed from u and v components: 
+
+https://confluence.ecmwf.int/pages/viewpage.action?pageId=133262398
+
+Should be the square root of u2 + v2
+
+```{r wind speed}
+
+#calculate wind speed
+HourlyMeans16_modLU$WindSpeed <- sqrt(HourlyMeans16_modLU$UWind^2 + HourlyMeans16_modLU$VWind^2)
+HourlyMeans17_modLU$WindSpeed <- sqrt(HourlyMeans17_modLU$UWind^2 + HourlyMeans17_modLU$VWind^2)
+HourlyMeans17_msst_modLU$WindSpeed <- sqrt(HourlyMeans17_msst_modLU$UWind^2 + HourlyMeans17_msst_modLU$VWind^2)
+
+focalHRS <- c(aftHours1, aftHours2)
+
+##EDA of wind speed, just to see
+ggplot(HourlyMeans16_modLU[c(HourlyMeans16_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind speed (m/s)")  + 
+   coord_cartesian(ylim = c(0, 8))
+
+ggplot(HourlyMeans17_modLU[c(HourlyMeans17_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind speed (m/s)")  + 
+   coord_cartesian(ylim = c(0, 8))
+
+ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind speed (m/s)")  + 
+   coord_cartesian(ylim = c(0, 8))
+
+```
+
+
+```{r sw}
+focalHRS <- c(aftHours1, aftHours2)
+
+##EDA of incomind downward SW radiation, just to see
+ggplot(HourlyMeans16_modLU[c(HourlyMeans16_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(SWDown), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2016 Shortwave Radiation by Land Use") + 
+  xlab("Hour") + ylab("Shortwave Radiation Flux (W m-2)")  + 
+   coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
+
+ggplot(HourlyMeans17_modLU[c(HourlyMeans17_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(SWDown), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("2017 Shortwave Radiation by Land Use") + 
+  xlab("Hour") + ylab("Shortwave Radiation Flux (W m-2)")    + 
+   coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
+
+ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(SWDown), fill=LandUse)) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Shortwave Radiation by Land Use") + 
+  xlab("Hour") + ylab("Shortwave Radiation Flux (W m-2)")  + 
+   coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
+```
+
+
+#EDA Temp differences
+
+Just go through and do basic differences by LU type
+
+Note: since I am averaging, this is very coarse, it reduces all the variation within land use types
+
+```{r means by LU}
+#create storage matrix
+colNms <- c("Hour", "LandUse", "MeanRH16", "MeanRH17", "MeanRH17s", 
+            "MeanTemp16", "MeanTemp17", "MeanTemp17s", "MeanWSp16", 
+            "MeanWSp17", "MeanWSp17s", "MeanSW16", "MeanSW17", "MeanSW17s")
+uLU <- unique(LU_dict$New_Name)
+uLUnm <- unique(LU_dict$New_Num)
+HourlyMean_byLU <- as.data.frame(matrix(0, ncol=length(colNms), nrow=length(uLU)*24))
+names(HourlyMean_byLU) <- colNms
+
+#set up your index for the storage matrix
+smat_ind <- 1
+
+for (h in 0:23){
+  
+  #get hourly data
+  hr16 <- HourlyMeans16_modLU[HourlyMeans16_modLU$hour == h, ]
+  hr17 <- HourlyMeans17_modLU[HourlyMeans17_modLU$hour == h, ]
+  hr17s <- HourlyMeans17_msst_modLU[HourlyMeans17_msst_modLU$hour == h, ]
+  
+  for (l in 1:length(uLUnm)){
+    
+    HourlyMean_byLU$Hour[smat_ind] <- h
+    HourlyMean_byLU$LandUse[smat_ind] <- uLU[l]
+    HourlyMean_byLU$MeanRH16[smat_ind] <- mean(hr16$RelHumid[hr16$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanRH17[smat_ind] <- mean(hr17$RelHumid[hr17$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanRH17s[smat_ind] <- mean(hr17s$RelHumid[hr17s$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanTemp16[smat_ind] <- mean(hr16$X2mTemp[hr16$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanTemp17[smat_ind] <- mean(hr17$X2mTemp[hr17$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanTemp17s[smat_ind] <- mean(hr17s$X2mTemp[hr17s$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanWSp16[smat_ind] <- mean(hr16$WindSpeed[hr16$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanWSp17[smat_ind] <- mean(hr17$WindSpeed[hr17$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanWSp17s[smat_ind] <- mean(hr17s$WindSpeed[hr17s$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanSW16[smat_ind] <- mean(hr16$SWDown[hr16$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanSW17[smat_ind] <- mean(hr17$SWDown[hr17$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanSW17s[smat_ind] <- mean(hr17s$SWDown[hr17s$LandUse == uLU[l]])
+    
+    #increase the iteration
+    smat_ind <- smat_ind + 1
+  }
+  
+}
+
+#get rid of LU with no data
+HourlyMean_byLU <- HourlyMean_byLU[!is.na(HourlyMean_byLU$MeanTemp16),]
+
+#calculate your differences
+HourlyMean_byLU$DiffRH17m16 <- HourlyMean_byLU$MeanRH17 - HourlyMean_byLU$MeanRH16
+HourlyMean_byLU$DiffRH17m17s <- HourlyMean_byLU$MeanRH17 - HourlyMean_byLU$MeanRH17s
+HourlyMean_byLU$DiffTemp17m16 <- HourlyMean_byLU$MeanTemp17 - HourlyMean_byLU$MeanTemp16
+HourlyMean_byLU$DiffTemp17m17s <- HourlyMean_byLU$MeanTemp17 - HourlyMean_byLU$MeanTemp17s
+HourlyMean_byLU$DiffWS17m16 <- HourlyMean_byLU$MeanWSp17 - HourlyMean_byLU$MeanWSp16
+HourlyMean_byLU$DiffWS17m17s <- HourlyMean_byLU$MeanWSp17 - HourlyMean_byLU$MeanWSp17s
+HourlyMean_byLU$DiffSW17m16 <- HourlyMean_byLU$MeanSW17 - HourlyMean_byLU$MeanSW16
+HourlyMean_byLU$DiffSW17m17s <- HourlyMean_byLU$MeanSW17 - HourlyMean_byLU$MeanSW17s
+```
+
+
+Now plot out our results so we can look at it a bit more clearly
+
+```{r diff visuals temp}
+
+###TEMPERATURE
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp17m16), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Minus 2016 Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-1, 6)) + theme_minimal() 
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp17m17s), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Minus Simulated 2017 Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-1, 6))  + theme_minimal() 
+
+
+####to figure out what is happening at 1pm
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanTemp16-273.15), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2016 Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)") + 
+   coord_cartesian(ylim = c(4, 24))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanTemp17-273.15), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)") + 
+   coord_cartesian(ylim = c(4, 24))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanTemp17s-273.15), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("Simulated 2017 Temperatures by Land Use") + 
+  xlab("Hour") + ylab("Temperature (C)") + 
+   coord_cartesian(ylim = c(4, 24))
+
+```
+
+Now for relative humidity
+
+```{r diff visuals RH}
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffRH17m16), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Minus 2016 Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("RH difference Difference (%)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-10, 18))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffRH17m17s), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Minus Simulated 2017 Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("RH difference Difference (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
+   coord_cartesian(ylim = c(-10, 18))
+
+###to see them each more clearly
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanRH16), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2016 Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
+   coord_cartesian(ylim = c(0, 100))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanRH17), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("2017 Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
+   coord_cartesian(ylim = c(0, 100))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanRH17s), group=LandUse)) + 
+  geom_line(aes(color=LandUse), size=1) + ggtitle("Simulated 2017 Relative Humidity by Land Use") + 
+  xlab("Hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
+   coord_cartesian(ylim = c(0, 100))
+
+```
+
+Now for wind speed
+
+```{r diff visuals wind speed}
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS17m16), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Minus 2016 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind Speed difference Difference (m/s)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-1, 7))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS17m17s), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Minus Simulated 2017 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind Speed difference Difference (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-1, 7))
+
+
+###to see them each more clearly
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp16), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2016 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 9))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp17), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 9))
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp17s), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("Simulated 2017 Wind Speed by Land Use") + 
+  xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 9))
+
+```

@@ -12,3 +12,6 @@
 03ProcessedData/HourlyMeans_2017_w16SST_042225.csv
 03ProcessedData/HourlyMeans_2017_w16SST_051325.csv
 03ProcessedData/HourlyMeans_2017_051325.csv
+/03ProcessedData
+02Code/DataAnalysis/.RData
+02Code/DataAnalysis/.RDataTmp
