@@ -19,9 +19,9 @@ This is currently an incomplete run
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
-HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_051925.csv")
-HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_051925.csv")
-HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_051925.csv")
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_051325.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_051325.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_051325.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
@@ -265,18 +265,18 @@ focalHRS <- c(aftHours1, aftHours2)
 ##EDA of incomind downward SW radiation, just to see
 ggplot(HourlyMeans16_modLU[c(HourlyMeans16_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(SWDown), fill=LandUse)) + 
   geom_boxplot() + ggtitle("2016 Shortwave Radiation by Land Use") + 
-  xlab("Hour") + ylab("Shortwave Radiation Flux (W m-2)")  + 
+  xlab("Hour") + ylab("Shortwave Radiation Flux (J m-2)")  + 
    coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
 
 ggplot(HourlyMeans17_modLU[c(HourlyMeans17_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(SWDown), fill=LandUse)) + 
   geom_boxplot() + ggtitle("2017 Shortwave Radiation by Land Use") + 
-  xlab("Hour") + ylab("Shortwave Radiation Flux (W m-2)")    + 
+  xlab("Hour") + ylab("Shortwave Radiation Flux (J m-2)")    + 
    coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
 
 ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(SWDown), fill=LandUse)) + 
   geom_boxplot() + ggtitle("Simulated 2017 Shortwave Radiation by Land Use") + 
-  xlab("Hour") + ylab("Shortwave Radiation Flux (W m-2)")  + 
-   coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
+  xlab("Hour") + ylab("Shortwave Radiation Flux (J m-2)")  #+ 
+   #coord_cartesian(ylim = c(1.35e+08, 1.8e+08))
 ```
 
 
