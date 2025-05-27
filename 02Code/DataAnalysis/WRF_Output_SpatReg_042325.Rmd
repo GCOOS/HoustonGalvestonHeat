@@ -33,9 +33,9 @@ https://confluence.ecmwf.int/pages/viewpage.action?pageId=133262398
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
-HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_051325.csv")
-HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_051325.csv")
-HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_051325.csv")
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052025.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052025.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052025.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
@@ -59,6 +59,35 @@ LU_dict$Original_Name <- LU_names
 LU_dict$Original_Num <- 1:17
 LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
+
+#change the hours
+HourDict <- as.data.frame(matrix(0, nrow=24, ncol=2))
+names(HourDict) <- c("Current", "New")
+HourDict$Current <- 0:23
+HourDict$New <- c(18, 19, 20, 21, 22, 23, 0, 1, 2, 
+                  3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
+                  13, 14, 15, 16, 17)
+
+#convert the hours to CST
+HourlyMeans16$hour <- HourDict$New[HourlyMeans16$hour + 1] 
+HourlyMeans17$hour <- HourDict$New[HourlyMeans17$hour + 1] 
+HourlyMeans17_msst$hour <- HourDict$New[HourlyMeans17_msst$hour + 1] 
+
+```
+
+##Pull in distance data
+
+These were split out to make running the python code a lot faster
+
+```{r dist2ocean}
+Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016.csv")
+Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017.csv")
+Dists17s <- read.csv("../../03ProcessedData/Dist2Ocean_2017_w16SST.csv")
+
+##combine
+HourlyMeans16$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16$lat & Dists16$long == HourlyMeans16$long]
+HourlyMeans17$Dist2Ocean <- Dists17$Dist2Ocean[Dists16$lat == HourlyMeans17$lat & Dists17$long == HourlyMeans17$long]
+HourlyMeans17_msst$Dist2Ocean <- Dists17s$Dist2Ocean[Dists17s$lat == HourlyMeans17_msst$lat & Dists17s$long == HourlyMeans17_msst$long]
 
 ```
 
@@ -97,8 +126,8 @@ If you do spDynLm I think you end up with different regressions for each hour
 #nobs <- length(HourlyMeans17$GridCell) #number of observations
 #coords <- HourlyMeans17[, c("GridCell", "lat", "long")] #points of the observations
 
-nobs <- length(HourlyMeans17_msst$GridCell)
-coords <- HourlyMeans17_msst[, c("GridCell", "lat", "long")]
+nobs <- length(HourlyMeans17$GridCell)
+coords <- HourlyMeans17[HourlyMeans17$hour == 18, c("GridCell", "lat", "long")] #just to not duplic
 names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
 coords <- unique(coords)
 
@@ -127,9 +156,9 @@ ntot <- 50 #number of knots to keep
 knots <- st_coordinates(knots_test$geometry[order(knots_test$within_2000, decreasing = TRUE)][1:ntot])
 
 #check the knots
-plot(boundingbox, xlim=c(boundingbox[1], boundingbox[3]), ylim=c(boundingbox[2], boundingbox[4]))
-points(st_coordinates(coords_UTM),cex=.2)
-points(knots[,1],knots[,2],col='black', pch=15)
+# plot(boundingbox, xlim=c(boundingbox[1], boundingbox[3]), ylim=c(boundingbox[2], boundingbox[4]))
+# points(st_coordinates(coords_UTM),cex=.2)
+# points(knots[,1],knots[,2],col='black', pch=15)
 
 ```
 
@@ -175,30 +204,30 @@ ReOrg_Temp16[,9] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 20]
 ReOrg_Temp16[,10] <- HourlyMeans16$X2mTemp[HourlyMeans16$hour == 21]
 
 #Get your fixed effects
-ReOrg_Temp16[,11] <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 12]
-ReOrg_Temp16[,12] <- HourlyMeans16$LandUse[HourlyMeans16$hour == 12]
+ReOrg_Temp16[,11] <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 18]
+ReOrg_Temp16[,12] <- HourlyMeans16$LandUse[HourlyMeans16$hour == 18]
 names(ReOrg_Temp16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 
 #re-organize 2016 humidity
-ReOrg_RH16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n16))
-
-#Get your hourly temps - response
-ReOrg_RH16[,1] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 12]
-ReOrg_RH16[,2] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 13]
-ReOrg_RH16[,3] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 14]
-ReOrg_RH16[,4] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 15]
-ReOrg_RH16[,5] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 16]
-ReOrg_RH16[,6] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 17]
-ReOrg_RH16[,7] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 18]
-ReOrg_RH16[,8] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 19]
-ReOrg_RH16[,9] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 20]
-ReOrg_RH16[,10] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 21]
-
-#Get your fixed effects
-ReOrg_RH16[,11] <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 12]
-ReOrg_RH16[,12] <- HourlyMeans16$LandUse[HourlyMeans16$hour == 12]
-names(ReOrg_RH16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+# ReOrg_RH16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n16))
+# 
+# #Get your hourly temps - response
+# ReOrg_RH16[,1] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 12]
+# ReOrg_RH16[,2] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 13]
+# ReOrg_RH16[,3] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 14]
+# ReOrg_RH16[,4] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 15]
+# ReOrg_RH16[,5] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 16]
+# ReOrg_RH16[,6] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 17]
+# ReOrg_RH16[,7] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 18]
+# ReOrg_RH16[,8] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 19]
+# ReOrg_RH16[,9] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 20]
+# ReOrg_RH16[,10] <- HourlyMeans16$RelHumid[HourlyMeans16$hour == 21]
+# 
+# #Get your fixed effects
+# ReOrg_RH16[,11] <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 18]
+# ReOrg_RH16[,12] <- HourlyMeans16$LandUse[HourlyMeans16$hour == 18]
+# names(ReOrg_RH16) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 ############################# 2017: MHW
 #Re-organize 2017 - Temperature
@@ -220,30 +249,30 @@ ReOrg_Temp17[,9] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 20]
 ReOrg_Temp17[,10] <- HourlyMeans17$X2mTemp[HourlyMeans17$hour == 21]
 
 #Get your fixed effects
-ReOrg_Temp17[,11] <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 12]
-ReOrg_Temp17[,12] <- HourlyMeans17$LandUse[HourlyMeans17$hour == 12]
+ReOrg_Temp17[,11] <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 18]
+ReOrg_Temp17[,12] <- HourlyMeans17$LandUse[HourlyMeans17$hour == 18]
 names(ReOrg_Temp17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 
-#re-organize 2017 humidity
-ReOrg_RH17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17))
-
-#Get your hourly temps - response
-ReOrg_RH17[,1] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 12]
-ReOrg_RH17[,2] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 13]
-ReOrg_RH17[,3] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 14]
-ReOrg_RH17[,4] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 15]
-ReOrg_RH17[,5] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 16]
-ReOrg_RH17[,6] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 17]
-ReOrg_RH17[,7] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 18]
-ReOrg_RH17[,8] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 19]
-ReOrg_RH17[,9] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 20]
-ReOrg_RH17[,10] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 21]
-
-#Get your fixed effects
-ReOrg_RH17[,11] <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 12]
-ReOrg_RH17[,12] <- HourlyMeans17$LandUse[HourlyMeans17$hour == 12]
-names(ReOrg_RH17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+# #re-organize 2017 humidity
+# ReOrg_RH17 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17))
+# 
+# #Get your hourly temps - response
+# ReOrg_RH17[,1] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 12]
+# ReOrg_RH17[,2] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 13]
+# ReOrg_RH17[,3] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 14]
+# ReOrg_RH17[,4] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 15]
+# ReOrg_RH17[,5] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 16]
+# ReOrg_RH17[,6] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 17]
+# ReOrg_RH17[,7] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 18]
+# ReOrg_RH17[,8] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 19]
+# ReOrg_RH17[,9] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 20]
+# ReOrg_RH17[,10] <- HourlyMeans17$RelHumid[HourlyMeans17$hour == 21]
+# 
+# #Get your fixed effects
+# ReOrg_RH17[,11] <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 18]
+# ReOrg_RH17[,12] <- HourlyMeans17$LandUse[HourlyMeans17$hour == 18]
+# names(ReOrg_RH17) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 
 ############################# 2017: MHW - CLIMATOLOGICALLY AVERAGE SST
@@ -266,30 +295,30 @@ ReOrg_Temp17_msst[,9] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 2
 ReOrg_Temp17_msst[,10] <- HourlyMeans17_msst$X2mTemp[HourlyMeans17_msst$hour == 21]
 
 #Get your fixed effects
-ReOrg_Temp17_msst[,11] <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 12]
-ReOrg_Temp17_msst[,12] <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 12]
+ReOrg_Temp17_msst[,11] <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 18]
+ReOrg_Temp17_msst[,12] <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 18]
 names(ReOrg_Temp17_msst) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 
 #re-organize 2017 humidity
-ReOrg_RH17_msst <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17c))
-
-#Get your hourly temps - response
-ReOrg_RH17_msst[,1] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 12]
-ReOrg_RH17_msst[,2] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 13]
-ReOrg_RH17_msst[,3] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 14]
-ReOrg_RH17_msst[,4] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 15]
-ReOrg_RH17_msst[,5] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 16]
-ReOrg_RH17_msst[,6] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 17]
-ReOrg_RH17_msst[,7] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 18]
-ReOrg_RH17_msst[,8] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 19]
-ReOrg_RH17_msst[,9] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 20]
-ReOrg_RH17_msst[,10] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 21]
-
-#Get your fixed effects
-ReOrg_RH17_msst[,11] <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 12]
-ReOrg_RH17_msst[,12] <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 12]
-names(ReOrg_RH17_msst) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
+# ReOrg_RH17_msst <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow =n17c))
+# 
+# #Get your hourly temps - response
+# ReOrg_RH17_msst[,1] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 12]
+# ReOrg_RH17_msst[,2] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 13]
+# ReOrg_RH17_msst[,3] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 14]
+# ReOrg_RH17_msst[,4] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 15]
+# ReOrg_RH17_msst[,5] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 16]
+# ReOrg_RH17_msst[,6] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 17]
+# ReOrg_RH17_msst[,7] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 18]
+# ReOrg_RH17_msst[,8] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 19]
+# ReOrg_RH17_msst[,9] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 20]
+# ReOrg_RH17_msst[,10] <- HourlyMeans17_msst$RelHumid[HourlyMeans17_msst$hour == 21]
+# 
+# #Get your fixed effects
+# ReOrg_RH17_msst[,11] <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 18]
+# ReOrg_RH17_msst[,12] <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 18]
+# names(ReOrg_RH17_msst) <- c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10", "Dist2Ocean", "LandUse")
 
 ```
 
@@ -367,6 +396,9 @@ Update from EDA: Definitely have spatial structure, the difference seems to peak
 
 ```{r regs 2016}
 
+#change to km instead of m
+ReOrg_Temp16$Dist2Ocean <- ReOrg_Temp16$Dist2Ocean/1000
+
 #Temperature
 ##get the models
 mods <- lapply(paste(c("y.1", "y.2", "y.3", "y.4", "y.5", "y.6", "y.7", "y.8", "y.9", "y.10"),'1 + LandUse + Dist2Ocean',sep='~'), as.formula)
@@ -379,9 +411,9 @@ m.temp.16 <- spDynLM(mods, data=ReOrg_Temp16, coords=st_coordinates(coords_UTM),
 #Backup <- m.temp.16
 
 ##Relative humidity
-m.rh.16 <- spDynLM(mods, data=ReOrg_RH16, coords=st_coordinates(coords_UTM),
-               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
-               cov.model="exponential", n.samples=n.samples, n.report=500) 
+#m.rh.16 <- spDynLM(mods, data=ReOrg_RH16, coords=st_coordinates(coords_UTM),
+#               starting=starting16, tuning=tuning16, priors=priors16, knots = knots,
+#               cov.model="exponential", n.samples=n.samples, n.report=500) 
 ```
 
 
@@ -402,8 +434,8 @@ se    <- apply( m.temp.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016_050225.csv")
-saveRDS(m.temp.16, "../../05AnalysisOutputs/SpDynLM_Temp2016_050225.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2016_052725.csv")
+saveRDS(m.temp.16, "../../05AnalysisOutputs/SpDynLM_Temp2016_052725.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -422,30 +454,30 @@ coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
 
-#########################2016 Relative Humidity
-burn.in   <- 0.75*n.samples
-sub.samps <- burn.in:n.samples
-m.rh.16$p.samples[,"phi"] <- 3/m.rh.16$p.samples[,"phi"]
-
-coeff <- t(apply( m.rh.16$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
-se    <- apply( m.rh.16$p.beta.samples, 2, sd )
-coeff <- cbind( coeff[,1], se, coeff[,2:3])
-print( signif(coeff, 3) )
-
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016_050225.csv")
-saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016_050225.rds")
-#m.rh.16 <- readRDS("../../05AnalysisOutputs/SpDynLM_RelHum2016_050225.rds")
-
-#spatial random effects
-##need to check the order, may be tau then sigma then phi
-ts.plot(m.rh.16$p.theta.samples[,1],main="sigma sq",ylab="",
-xlim=c(100,nrow(m.rh.16$p.theta.samples)),ylim=c(0,25))
-ts.plot(m.rh.16$p.theta.samples[,2],main="tau sq",ylab="",
-xlim=c(100,nrow(m.rh.16$p.theta.samples)),ylim=c(0,1.5))
-ts.plot(m.rh.16$p.theta.samples[,3],main="phi",ylab="",
-xlim=c(50,nrow(m.rh.16$p.theta.samples)))
-
-##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+# #########################2016 Relative Humidity
+# burn.in   <- 0.75*n.samples
+# sub.samps <- burn.in:n.samples
+# m.rh.16$p.samples[,"phi"] <- 3/m.rh.16$p.samples[,"phi"]
+# 
+# coeff <- t(apply( m.rh.16$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+# se    <- apply( m.rh.16$p.beta.samples, 2, sd )
+# coeff <- cbind( coeff[,1], se, coeff[,2:3])
+# print( signif(coeff, 3) )
+# 
+# write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2016_050225.csv")
+# saveRDS(m.rh.16, "../../05AnalysisOutputs/SpDynLM_RelHum2016_052725.rds")
+# #m.rh.16 <- readRDS("../../05AnalysisOutputs/SpDynLM_RelHum2016_052725.rds")
+# 
+# #spatial random effects
+# ##need to check the order, may be tau then sigma then phi
+# ts.plot(m.rh.16$p.theta.samples[,1],main="sigma sq",ylab="",
+# xlim=c(100,nrow(m.rh.16$p.theta.samples)),ylim=c(0,25))
+# ts.plot(m.rh.16$p.theta.samples[,2],main="tau sq",ylab="",
+# xlim=c(100,nrow(m.rh.16$p.theta.samples)),ylim=c(0,1.5))
+# ts.plot(m.rh.16$p.theta.samples[,3],main="phi",ylab="",
+# xlim=c(50,nrow(m.rh.16$p.theta.samples)))
+# 
+# ##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
 ```
 
 ## Run models for MHW year
@@ -453,6 +485,9 @@ xlim=c(50,nrow(m.rh.16$p.theta.samples)))
 Now we get into 2017 and do the same as above
 
 ```{r regs 2017}
+
+#change to km instead of m
+ReOrg_Temp17$Dist2Ocean <- ReOrg_Temp17$Dist2Ocean/1000
 
 #Temperature
 ##get the models
@@ -465,9 +500,9 @@ m.temp.17 <- spDynLM(mods, data=ReOrg_Temp17, coords=st_coordinates(coords_UTM),
 
 
 ##Relative humidity
-m.rh.17 <- spDynLM(mods, data=ReOrg_RH17, coords=st_coordinates(coords_UTM),
-               starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
-               cov.model="exponential", n.samples=n.samples, n.report=500) 
+# m.rh.17 <- spDynLM(mods, data=ReOrg_RH17, coords=st_coordinates(coords_UTM),
+#                starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
+#                cov.model="exponential", n.samples=n.samples, n.report=500) 
 ```
 
 
@@ -486,8 +521,8 @@ se    <- apply( m.temp.17$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_050225.csv")
-saveRDS(m.temp.17, "../../05AnalysisOutputs/SpDynLM_Temp2017_050225.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_052725.csv")
+saveRDS(m.temp.17, "../../05AnalysisOutputs/SpDynLM_Temp2017_052725.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -506,29 +541,29 @@ xlim=c(50,nrow(m.temp.17$p.theta.samples)))
 # print( signif(coeff, 3) )
 
 
-#########################2017 Relative Humidity
-burn.in   <- 0.75*n.samples
-sub.samps <- burn.in:n.samples
-m.rh.17$p.samples[,"phi"] <- 3/m.rh.17$p.samples[,"phi"]
-
-coeff <- t(apply( m.rh.17$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
-se    <- apply( m.rh.17$p.beta.samples, 2, sd )
-coeff <- cbind( coeff[,1], se, coeff[,2:3])
-print( signif(coeff, 3) )
-
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_050225.csv")
-saveRDS(m.rh.17, "../../05AnalysisOutputs/SpDynLM_RelHum2017_050225.rds")
-
-#spatial random effects
-##need to check the order, may be tau then sigma then phi
-ts.plot(m.rh.17$p.theta.samples[,1],main="sigma sq",ylab="",
-xlim=c(100,nrow(m.rh.17$p.theta.samples)),ylim=c(0,50))
-ts.plot(m.rh.17$p.theta.samples[,2],main="tau sq",ylab="",
-xlim=c(100,nrow(m.rh.17$p.theta.samples)),ylim=c(0,1))
-ts.plot(m.rh.17$p.theta.samples[,3],main="phi",ylab="",
-xlim=c(50,nrow(m.rh.17$p.theta.samples)))
-
-##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
+# #########################2017 Relative Humidity
+# burn.in   <- 0.75*n.samples
+# sub.samps <- burn.in:n.samples
+# m.rh.17$p.samples[,"phi"] <- 3/m.rh.17$p.samples[,"phi"]
+# 
+# coeff <- t(apply( m.rh.17$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+# se    <- apply( m.rh.17$p.beta.samples, 2, sd )
+# coeff <- cbind( coeff[,1], se, coeff[,2:3])
+# print( signif(coeff, 3) )
+# 
+# write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_050225.csv")
+# saveRDS(m.rh.17, "../../05AnalysisOutputs/SpDynLM_RelHum2017_050225.rds")
+# 
+# #spatial random effects
+# ##need to check the order, may be tau then sigma then phi
+# ts.plot(m.rh.17$p.theta.samples[,1],main="sigma sq",ylab="",
+# xlim=c(100,nrow(m.rh.17$p.theta.samples)),ylim=c(0,50))
+# ts.plot(m.rh.17$p.theta.samples[,2],main="tau sq",ylab="",
+# xlim=c(100,nrow(m.rh.17$p.theta.samples)),ylim=c(0,1))
+# ts.plot(m.rh.17$p.theta.samples[,3],main="phi",ylab="",
+# xlim=c(50,nrow(m.rh.17$p.theta.samples)))
+# 
+# ##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
 
 # coeff <- t(apply( m.rh.17$p.sigma.eta.samples, 2, quantile, c(.5, .025, .975) ))
 # se    <- apply( m.rh.17$p.sigma.eta.samples, 2, sd )
@@ -540,6 +575,7 @@ xlim=c(50,nrow(m.rh.17$p.theta.samples)))
 #Now do it for simulated 2017
 ```{r regs 2017 simlated}
 
+
 #this should work for both datasets
 nobs <- length(HourlyMeans17_msst$GridCell) #number of observations
 coords <- HourlyMeans17_msst[, c("GridCell", "lat", "long")] #points of the observations
@@ -550,6 +586,8 @@ coords <- unique(coords)
 coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
 coords_UTM <- st_transform(coords_sf, CRS("+proj=utm +zone=15 ellps=WGS84"))
 
+#change to km instead of m
+ReOrg_Temp17_msst$Dist2Ocean <- ReOrg_Temp17_msst$Dist2Ocean/1000
 
 #Temperature
 ##get the models
@@ -562,9 +600,9 @@ m.temp.17c <- spDynLM(mods, data=ReOrg_Temp17_msst, coords=st_coordinates(coords
 
 
 ##Relative humidity
-m.rh.17c <- spDynLM(mods, data=ReOrg_RH17_msst, coords=st_coordinates(coords_UTM),
-               starting=starting17c, tuning=tuning17c, priors=priors17c, knots = knots,
-               cov.model="exponential", n.samples=n.samples, n.report=500) 
+# m.rh.17c <- spDynLM(mods, data=ReOrg_RH17_msst, coords=st_coordinates(coords_UTM),
+#                starting=starting17c, tuning=tuning17c, priors=priors17c, knots = knots,
+#                cov.model="exponential", n.samples=n.samples, n.report=500) 
 ```
 
 
@@ -583,8 +621,8 @@ se    <- apply( m.temp.17c$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_w16SST_050225.csv")
-saveRDS(m.temp.17c, "../../05AnalysisOutputs/SpDynLM_Temp2017_w16SST_050225.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_Temp2017_w16SST_052725.csv")
+saveRDS(m.temp.17c, "../../05AnalysisOutputs/SpDynLM_Temp2017_w16SST_052725.rds")
 
 #spatial random effects
 ##need to check the order, may be tau then sigma then phi
@@ -597,28 +635,28 @@ xlim=c(50,nrow(m.temp.17c$p.theta.samples)))
 
 ##more plots - https://www.rdocumentation.org/packages/spBayes/versions/0.4-7/topics/spDynLM 
 
-#########################2017 Relative Humidity
-burn.in   <- 0.75*n.samples
-sub.samps <- burn.in:n.samples
-m.rh.17c$p.samples[,"phi"] <- 3/m.rh.17c$p.samples[,"phi"]
-
-coeff <- t(apply( m.rh.17c$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
-se    <- apply( m.rh.17c$p.beta.samples, 2, sd )
-coeff <- cbind( coeff[,1], se, coeff[,2:3])
-print( signif(coeff, 3) )
-
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_w16SST_050225.csv")
-saveRDS(m.rh.17c, "../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds")
-#m.rh.17c <- readRDS('../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds')
-
-#spatial random effects
-##need to check the order, may be tau then sigma then phi
-ts.plot(m.rh.17c$p.theta.samples[,1],main="sigma sq",ylab="",
-xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,50))
-ts.plot(m.rh.17c$p.theta.samples[,2],main="tau sq",ylab="",
-xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,1))
-ts.plot(m.rh.17c$p.theta.samples[,3],main="phi",ylab="",
-xlim=c(50,nrow(m.rh.17c$p.theta.samples)))
+# #########################2017 Relative Humidity
+# burn.in   <- 0.75*n.samples
+# sub.samps <- burn.in:n.samples
+# m.rh.17c$p.samples[,"phi"] <- 3/m.rh.17c$p.samples[,"phi"]
+# 
+# coeff <- t(apply( m.rh.17c$p.beta.samples, 2, quantile, c(.5, .025, .975) ))
+# se    <- apply( m.rh.17c$p.beta.samples, 2, sd )
+# coeff <- cbind( coeff[,1], se, coeff[,2:3])
+# print( signif(coeff, 3) )
+# 
+# write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_RelHum2017_w16SST_050225.csv")
+# saveRDS(m.rh.17c, "../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds")
+# #m.rh.17c <- readRDS('../../05AnalysisOutputs/SpDynLM_RelHum2017_w16SST_050225.rds')
+# 
+# #spatial random effects
+# ##need to check the order, may be tau then sigma then phi
+# ts.plot(m.rh.17c$p.theta.samples[,1],main="sigma sq",ylab="",
+# xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,50))
+# ts.plot(m.rh.17c$p.theta.samples[,2],main="tau sq",ylab="",
+# xlim=c(100,nrow(m.rh.17c$p.theta.samples)),ylim=c(0,1))
+# ts.plot(m.rh.17c$p.theta.samples[,3],main="phi",ylab="",
+# xlim=c(50,nrow(m.rh.17c$p.theta.samples)))
 
 ```
 
@@ -626,7 +664,7 @@ xlim=c(50,nrow(m.rh.17c$p.theta.samples)))
 
 ```{r get data ready}
 #calculate wind speed
-HourlyMeans16$WindSpeed <- sqrt(HourlyMeans16$UWind^2 + HourlyMeans16$VWind^2)
+HourlyMeans16$WindSpeed <- sqrt(HourlyMeans16$UWind_lm^2 + HourlyMeans16$VWind_lm^2)
 HourlyMeans17$WindSpeed <- sqrt(HourlyMeans17$UWind^2 + HourlyMeans17$VWind^2)
 HourlyMeans17_msst$WindSpeed <- sqrt(HourlyMeans17_msst$UWind^2 + HourlyMeans17_msst$VWind^2)
 
