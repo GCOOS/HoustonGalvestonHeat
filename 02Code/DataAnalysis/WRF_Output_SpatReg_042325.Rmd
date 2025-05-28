@@ -386,7 +386,7 @@ priors17c <- list("beta.0.Norm"=list(rep(0,p17c), diag(1000,p17c)),
 
 Now actually run the regression
 
-Temperature should be fine this way, but relative humdity is bounded between 0 and 100. If we don't get close to the ends we may be able to pretend it is approximately continuous but need to check that with the EDA first. 
+Temperature should be fine this way, but relative humidity is bounded between 0 and 100. If we don't get close to the ends we may be able to pretend it is approximately continuous but need to check that with the EDA first. 
 
 Update: from EDA seems like you stay between RH 30 and 80, so should be able to approximate it as continuous linear rather than having to deal with a beta regression
 
