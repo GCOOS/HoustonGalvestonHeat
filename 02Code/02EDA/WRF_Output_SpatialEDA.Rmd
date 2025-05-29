@@ -1,0 +1,313 @@
+---
+title: "MHW Spatial EDA"
+author: "Renata Poulton Kamakura"
+date: "2025-05-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(sf)
+library(tmap)
+```
+
+## Input data
+
+```{r read in data}
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052725.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052725.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052725.csv")
+
+#More for reference
+LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
+            'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest',
+            'Mixed Forests', 'Closed Shrublands',  'Open Shrublands', 
+            'Woody Savannas', 'Savannas', 'Grasslands', 
+            'Permanent wetlands', 'Croplands', 'Urban and Built-Up', 
+            'cropland/natural vegetation mosaic', 
+            'Snow and Ice', 'Barren or Sparsely Vegetated', 'Water')
+
+NewLUs <- c('Forest', 'Forest', 'Forest', 'Forest', 'Forest',
+            'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna', 'Shrub/Savanna',
+            "Shrub/Savanna", "Wetlands", "Crop", "Urban", "Crop", "Snow", 
+            "Barren", "Water")
+NewLU_nums <- c(1,1,1,1,1,2,2,2,2,2,3,4,5,4,6,7,8)
+
+LU_dict <- as.data.frame(matrix(0, nrow=17, ncol=4))
+names(LU_dict) <- c("Original_Name", "Original_Num", "New_Name", "New_Num")
+
+LU_dict$Original_Name <- LU_names
+LU_dict$Original_Num <- 1:17
+LU_dict$New_Name <- NewLUs
+LU_dict$New_Num <- NewLU_nums
+
+Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016.csv")
+Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017.csv")
+Dists17s <- read.csv("../../03ProcessedData/Dist2Ocean_2017_w16SST.csv")
+
+##combine
+HourlyMeans16$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16$lat & Dists16$long == HourlyMeans16$long]
+HourlyMeans17$Dist2Ocean <- Dists17$Dist2Ocean[Dists16$lat == HourlyMeans17$lat & Dists17$long == HourlyMeans17$long]
+HourlyMeans17_msst$Dist2Ocean <- Dists17s$Dist2Ocean[Dists17s$lat == HourlyMeans17_msst$lat & Dists17s$long == HourlyMeans17_msst$long]
+
+#change the hours
+HourDict <- as.data.frame(matrix(0, nrow=24, ncol=2))
+names(HourDict) <- c("Current", "New")
+HourDict$Current <- 0:23
+HourDict$New <- c(18, 19, 20, 21, 22, 23, 0, 1, 2, 
+                  3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
+                  13, 14, 15, 16, 17)
+
+#convert the hours to CST
+HourlyMeans16$hour <- HourDict$New[HourlyMeans16$hour + 1] 
+HourlyMeans17$hour <- HourDict$New[HourlyMeans17$hour + 1] 
+HourlyMeans17_msst$hour <- HourDict$New[HourlyMeans17_msst$hour + 1] 
+
+#modify land use
+HourlyMeans16_modLU <- HourlyMeans16
+HourlyMeans16_modLU$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
+HourlyMeans17_modLU <- HourlyMeans17
+HourlyMeans17_modLU$LandUse <- LU_dict$New_Name[HourlyMeans17$LandUse]
+HourlyMeans17_msst_modLU <- HourlyMeans17_msst
+HourlyMeans17_msst_modLU$LandUse <- LU_dict$New_Name[HourlyMeans17_msst$LandUse]
+
+#wind speed
+HourlyMeans16_modLU$WindSpeed_10m <- sqrt(HourlyMeans16_modLU$UWind_10m^2 + HourlyMeans16_modLU$VWind_10m^2)
+HourlyMeans17_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_modLU$UWind_10m^2 + HourlyMeans17_modLU$VWind_10m^2)
+HourlyMeans17_msst_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_msst_modLU$UWind_10m^2 + HourlyMeans17_msst_modLU$VWind_10m^2)
+
+```
+
+
+#basic visuals of your regions
+
+```{r basic vis}
+
+# Coordinates
+min_lat <- 28.70586
+max_lat <- 30.68516
+min_lon <- -96.50558
+max_lon <- -94.17598
+mid_lat <- (min_lat + max_lat) / 2
+mid_lon <- (min_lon + max_lon) / 2
+
+# Box creator function
+create_box <- function(coords, name) {
+  poly <- st_polygon(list(matrix(coords, ncol = 2, byrow = TRUE)))
+  st_sf(name = name, geometry = st_sfc(poly, crs = 4326))
+}
+
+# Main box
+main_coords <- c(
+  min_lon, min_lat, #bottom left
+  min_lon, max_lat, #top left
+  max_lon, max_lat, #top right
+  max_lon, min_lat, #bottom right
+  min_lon, min_lat #bottom left
+)
+main_box <- create_box(main_coords, "Main Box")
+
+# Southwest box
+sw_coords <- c(
+  -96.2, 28.9, #bottom left
+  -96.2, 29.2, #top left
+  -95.8, 29.2, #top right
+  -95.8, 28.9, #bottom right
+  -96.2, 28.9 #bottom left
+)
+sw_box <- create_box(sw_coords, "SW Box")
+
+# Northeast box
+ne_coords <- c(
+  -94.8, 30, #bottom left
+  -94.8, 30.3, #top left
+  -94.4, 30.3, #top right
+  -94.4, 30, #bottom right
+  -94.8, 30 #bottom left
+)
+ne_box <- create_box(ne_coords, "NE Box")
+
+# Top-left box
+tl_coords <- c(
+  -96.4, 30.2, #bottom left
+  -96.4, 30.5, #top left
+  -96, 30.5, #top right
+  -96, 30.2, #bottom right
+  -96.4, 30.2 #bottom left
+)
+tl_box <- create_box(tl_coords, "Top-Left Box")
+
+# Combine all into one sf object
+all_boxes <- rbind(main_box, sw_box, ne_box, tl_box)
+
+# Label positions (centroids of each box)
+#labels <- st_centroid(all_boxes)
+
+# Plot in view mode
+tmap_mode("view")
+tm_shape(all_boxes) +
+  tm_borders(lwd = 3, col = "blue") +
+  tm_basemap("OpenStreetMap") +
+  tm_fill("name",
+        fill_alpha = 0.4,
+        fill.scale = tm_scale(values = "brewer.set2")) + 
+  tm_shape(labels) +
+  tm_symbols(size = 0) +  # invisible symbol layer
+  tm_text("name", size = 1.2, col = "black", options = opt_tm_text(point.label = TRUE))
+
+
+```
+
+#Now Look at Intersection
+
+```{r points within boxes}
+
+#########################create the boxes
+
+# Box 1 - bottom left
+b1 <- matrix(c(
+  -96.2, 28.9, #bottom left
+  -96.2, 29.2, #top left
+  -95.8, 29.2, #top right
+  -95.8, 28.9, #bottom right
+  -96.2, 28.9 #bottom left
+), ncol=2, byrow=TRUE)
+
+b1_poly <- st_polygon(list(b1)) |> st_sfc(crs = 4326)
+
+# Box 2 - top left
+b2 <- matrix(c(
+  -96.4, 30.2, #bottom left
+  -96.4, 30.5, #top left
+  -96, 30.5, #top right
+  -96, 30.2, #bottom right
+  -96.4, 30.2 #bottom left
+), ncol=2, byrow=TRUE)
+
+b2_poly <- st_polygon(list(b2)) |> st_sfc(crs = 4326)
+
+# Box 3 - top right
+b3 <- matrix(c(
+  -94.8, 30, #bottom left
+  -94.8, 30.3, #top left
+  -94.4, 30.3, #top right
+  -94.4, 30, #bottom right
+  -94.8, 30 #bottom left
+), ncol=2, byrow=TRUE)
+
+b3_poly <- st_polygon(list(b3)) |> st_sfc(crs = 4326)
+
+
+####################create the points
+
+#get the relevant info
+pts_16 <- HourlyMeans16_modLU[HourlyMeans16_modLU$hour == 18, c("GridCell", "lat", "long", "LandUse")]
+pts_17 <- HourlyMeans17_modLU[HourlyMeans17_modLU$hour == 18, c("GridCell", "lat", "long", "LandUse")]
+pts_17s <- HourlyMeans17_msst_modLU[HourlyMeans17_msst_modLU$hour == 18, c("GridCell", "lat", "long", "LandUse")]
+
+#turn them into sf objects
+pts_16_sf <- st_as_sf(pts_16, coords = c("long", "lat"), crs = 4326)
+pts_17_sf <- st_as_sf(pts_17, coords = c("long", "lat"), crs = 4326)
+pts_17s_sf <- st_as_sf(pts_17s, coords = c("long", "lat"), crs = 4326)
+
+#######################look at intersection
+#check which are inside - box 1
+inside_logical_16b1 <- st_within(pts_16_sf, b1_poly, sparse = FALSE)[, 1]
+inside_logical_17b1 <- st_within(pts_17_sf, b1_poly, sparse = FALSE)[, 1]
+inside_logical_17sb1 <- st_within(pts_17s_sf, b1_poly, sparse = FALSE)[, 1]
+
+pts_16_inside_b1 <- pts_16_sf[inside_logical_16b1, ]
+pts_17_inside_b1 <- pts_17_sf[inside_logical_17b1, ]
+pts_17s_inside_b1 <- pts_17s_sf[inside_logical_17sb1, ]
+
+#check which are inside - box 2
+inside_logical_16b2 <- st_within(pts_16_sf, b2_poly, sparse = FALSE)[, 1]
+inside_logical_17b2 <- st_within(pts_17_sf, b2_poly, sparse = FALSE)[, 1]
+inside_logical_17sb2 <- st_within(pts_17s_sf, b2_poly, sparse = FALSE)[, 1]
+
+pts_16_inside_b2 <- pts_16_sf[inside_logical_16b2, ]
+pts_17_inside_b2 <- pts_17_sf[inside_logical_17b2, ]
+pts_17s_inside_b2 <- pts_17s_sf[inside_logical_17sb2, ]
+
+#check which are inside - box 3
+inside_logical_16b3 <- st_within(pts_16_sf, b3_poly, sparse = FALSE)[, 1]
+inside_logical_17b3 <- st_within(pts_17_sf, b3_poly, sparse = FALSE)[, 1]
+inside_logical_17sb3 <- st_within(pts_17s_sf, b3_poly, sparse = FALSE)[, 1]
+
+pts_16_inside_b3 <- pts_16_sf[inside_logical_16b3, ]
+pts_17_inside_b3 <- pts_17_sf[inside_logical_17b3, ]
+pts_17s_inside_b3 <- pts_17s_sf[inside_logical_17sb3, ]
+
+```
+
+##Now set up new datasets for analysis
+
+```{r create new df for analysis}
+
+#####################2016
+HourlyMeans16_wBoxes <- HourlyMeans16_modLU[HourlyMeans16_modLU$LandUse == "Crop",]
+HourlyMeans16_wBoxes$Box <- NA
+HourlyMeans16_wBoxes$Box[HourlyMeans16_wBoxes$GridCell %in% pts_16_inside_b1$GridCell] <- 1
+HourlyMeans16_wBoxes$Box[HourlyMeans16_wBoxes$GridCell %in% pts_16_inside_b2$GridCell] <- 2
+HourlyMeans16_wBoxes$Box[HourlyMeans16_wBoxes$GridCell %in% pts_16_inside_b3$GridCell] <- 3
+
+HourlyMeans16_wBoxes <- HourlyMeans16_wBoxes[!is.na(HourlyMeans16_wBoxes$Box),]
+
+#####################2017
+HourlyMeans17_wBoxes <- HourlyMeans17_modLU[HourlyMeans17_modLU$LandUse == "Crop",]
+HourlyMeans17_wBoxes$Box <- NA
+HourlyMeans17_wBoxes$Box[HourlyMeans17_wBoxes$GridCell %in% pts_17_inside_b1$GridCell] <- 1
+HourlyMeans17_wBoxes$Box[HourlyMeans17_wBoxes$GridCell %in% pts_17_inside_b2$GridCell] <- 2
+HourlyMeans17_wBoxes$Box[HourlyMeans17_wBoxes$GridCell %in% pts_17_inside_b3$GridCell] <- 3
+
+HourlyMeans17_wBoxes <- HourlyMeans17_wBoxes[!is.na(HourlyMeans17_wBoxes$Box),]
+
+
+#####################Simulated 2017
+HourlyMeans17s_wBoxes <- HourlyMeans17_msst_modLU[HourlyMeans17_msst_modLU$LandUse == "Crop",]
+HourlyMeans17s_wBoxes$Box <- NA
+HourlyMeans17s_wBoxes$Box[HourlyMeans17s_wBoxes$GridCell %in% pts_17s_inside_b1$GridCell] <- 1
+HourlyMeans17s_wBoxes$Box[HourlyMeans17s_wBoxes$GridCell %in% pts_17s_inside_b2$GridCell] <- 2
+HourlyMeans17s_wBoxes$Box[HourlyMeans17s_wBoxes$GridCell %in% pts_17s_inside_b3$GridCell] <- 3
+
+HourlyMeans17s_wBoxes <- HourlyMeans17s_wBoxes[!is.na(HourlyMeans17s_wBoxes$Box),]
+```
+
+##Basic Plots
+
+Starting simple, then can re-arrange to compare them
+
+```{r basic plots}
+##Box 1 is bottom left
+##Box 2 is top left
+##Box 3 is top right
+
+
+##2016 Basic Temperature Plot
+ggplot(HourlyMeans16_wBoxes, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("2016 Temperatures by Region") + 
+  xlab("Hour") + ylab("Temperature (C)")  + 
+   coord_cartesian(ylim = c(0, 25))
+
+##2017 Basic Temperature Plot
+ggplot(HourlyMeans17_wBoxes, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("2017 Temperatures by Region") + 
+  xlab("Hour") + ylab("Temperature (C)")  + 
+   coord_cartesian(ylim = c(0, 25))
+
+##2017 Simulated Basic Temperature Plot
+ggplot(HourlyMeans17s_wBoxes, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Temperatures by Region") + 
+  xlab("Hour") + ylab("Temperature (C)")  + 
+   coord_cartesian(ylim = c(0, 25))
+
+```
+
+#Next step
+Now I would look at the three boxes comparing MHW to non-MHW both ways
+
+I suspect you will see a bigger difference between the two 2017 runs for box 2, where the wind probably has to go through the city and is disrupted, compared to what you see in the boxes on either side of the city 
+
+Note, all of these are labelled as crop-ish land use

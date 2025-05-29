@@ -19,9 +19,9 @@ This is currently an incomplete run
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
-HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_051325.csv")
-HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_051325.csv")
-HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_051325.csv")
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052725.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052725.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052725.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
@@ -247,24 +247,24 @@ Should be the square root of u2 + v2
 ```{r wind speed}
 
 #calculate wind speed
-HourlyMeans16_modLU$WindSpeed <- sqrt(HourlyMeans16_modLU$UWind^2 + HourlyMeans16_modLU$VWind^2)
-HourlyMeans17_modLU$WindSpeed <- sqrt(HourlyMeans17_modLU$UWind^2 + HourlyMeans17_modLU$VWind^2)
-HourlyMeans17_msst_modLU$WindSpeed <- sqrt(HourlyMeans17_msst_modLU$UWind^2 + HourlyMeans17_msst_modLU$VWind^2)
+HourlyMeans16_modLU$WindSpeed_10m <- sqrt(HourlyMeans16_modLU$UWind_10m^2 + HourlyMeans16_modLU$VWind_10m^2)
+HourlyMeans17_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_modLU$UWind_10m^2 + HourlyMeans17_modLU$VWind_10m^2)
+HourlyMeans17_msst_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_msst_modLU$UWind_10m^2 + HourlyMeans17_msst_modLU$VWind_10m^2)
 
 focalHRS <- c(aftHours1, aftHours2)
 
 ##EDA of wind speed, just to see
-ggplot(HourlyMeans16_modLU[c(HourlyMeans16_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed), fill=LandUse)) + 
+ggplot(HourlyMeans16_modLU[c(HourlyMeans16_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed_10m), fill=LandUse)) + 
   geom_boxplot() + ggtitle("2016 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)")  + 
    coord_cartesian(ylim = c(0, 8))
 
-ggplot(HourlyMeans17_modLU[c(HourlyMeans17_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed), fill=LandUse)) + 
+ggplot(HourlyMeans17_modLU[c(HourlyMeans17_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed_10m), fill=LandUse)) + 
   geom_boxplot() + ggtitle("2017 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)")  + 
    coord_cartesian(ylim = c(0, 8))
 
-ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed), fill=LandUse)) + 
+ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(WindSpeed_10m), fill=LandUse)) + 
   geom_boxplot() + ggtitle("Simulated 2017 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)")  + 
    coord_cartesian(ylim = c(0, 8))
@@ -329,9 +329,9 @@ for (h in 0:23){
     HourlyMean_byLU$MeanTemp16[smat_ind] <- mean(hr16$X2mTemp[hr16$LandUse == uLU[l]])
     HourlyMean_byLU$MeanTemp17[smat_ind] <- mean(hr17$X2mTemp[hr17$LandUse == uLU[l]])
     HourlyMean_byLU$MeanTemp17s[smat_ind] <- mean(hr17s$X2mTemp[hr17s$LandUse == uLU[l]])
-    HourlyMean_byLU$MeanWSp16[smat_ind] <- mean(hr16$WindSpeed[hr16$LandUse == uLU[l]])
-    HourlyMean_byLU$MeanWSp17[smat_ind] <- mean(hr17$WindSpeed[hr17$LandUse == uLU[l]])
-    HourlyMean_byLU$MeanWSp17s[smat_ind] <- mean(hr17s$WindSpeed[hr17s$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanWSp16[smat_ind] <- mean(hr16$WindSpeed_10m[hr16$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanWSp17[smat_ind] <- mean(hr17$WindSpeed_10m[hr17$LandUse == uLU[l]])
+    HourlyMean_byLU$MeanWSp17s[smat_ind] <- mean(hr17s$WindSpeed_10m[hr17s$LandUse == uLU[l]])
     HourlyMean_byLU$MeanSW16[smat_ind] <- mean(hr16$SWDown[hr16$LandUse == uLU[l]])
     HourlyMean_byLU$MeanSW17[smat_ind] <- mean(hr17$SWDown[hr17$LandUse == uLU[l]])
     HourlyMean_byLU$MeanSW17s[smat_ind] <- mean(hr17s$SWDown[hr17s$LandUse == uLU[l]])
@@ -431,35 +431,44 @@ Now for wind speed
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS17m16), group=LandUse)) + 
   geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Minus 2016 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind Speed difference Difference (m/s)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 7))+ theme_minimal() 
+   coord_cartesian(ylim = c(-1, 4))+ theme_minimal() 
 
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS17m17s), group=LandUse)) + 
   geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Minus Simulated 2017 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind Speed difference Difference (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 7))+ theme_minimal() 
+   coord_cartesian(ylim = c(-1, 4))+ theme_minimal() 
 
 
 ###to see them each more clearly
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp16), group=LandUse)) + 
   geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2016 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 9))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 6))+ theme_minimal() 
 
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp17), group=LandUse)) + 
   geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 9))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 6))+ theme_minimal() 
 
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp17s), group=LandUse)) + 
   geom_line(aes(color=LandUse), linewidth=1) + ggtitle("Simulated 2017 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 9))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 6))+ theme_minimal() 
 
 ```
 Now for wind speed
 
 ```{r visuals solar radiation}
 
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSW17m16), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Minus 2016 Shortwave Radiation") + 
+  xlab("Hour") + ylab("Shortwave Radiation Difference (J m-2)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-60, 60))+ theme_minimal() 
+
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSW17m17s), group=LandUse)) + 
+  geom_line(aes(color=LandUse), linewidth=1) + ggtitle("2017 Minus Simulated 2017 Shortwave Radiation") + 
+  xlab("Hour") + ylab("Shortwave Radiation Difference (J m-2)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-60, 60))+ theme_minimal() 
 
 ###to see them each more clearly
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanSW16), group=LandUse)) + 

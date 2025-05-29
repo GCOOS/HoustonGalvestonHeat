@@ -33,9 +33,9 @@ https://confluence.ecmwf.int/pages/viewpage.action?pageId=133262398
 ```{r read data}
 #Get the hourly averages for each year
 #Likely will need to update the files here once re-run with all the data and spin-up
-HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052025.csv")
-HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052025.csv")
-HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052025.csv")
+HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052725.csv")
+HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052725.csv")
+HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052725.csv")
 
 #More for reference
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
@@ -664,9 +664,9 @@ xlim=c(50,nrow(m.temp.17c$p.theta.samples)))
 
 ```{r get data ready}
 #calculate wind speed
-HourlyMeans16$WindSpeed <- sqrt(HourlyMeans16$UWind_lm^2 + HourlyMeans16$VWind_lm^2)
-HourlyMeans17$WindSpeed <- sqrt(HourlyMeans17$UWind^2 + HourlyMeans17$VWind^2)
-HourlyMeans17_msst$WindSpeed <- sqrt(HourlyMeans17_msst$UWind^2 + HourlyMeans17_msst$VWind^2)
+HourlyMeans16$WindSpeed10m <- sqrt(HourlyMeans16$UWind_10m^2 + HourlyMeans16$VWind_10m^2)
+HourlyMeans17$WindSpeed10m <- sqrt(HourlyMeans17$UWind_10m^2 + HourlyMeans17$VWind_10m^2)
+HourlyMeans17_msst$WindSpeed10m <- sqrt(HourlyMeans17_msst$UWind_10m^2 + HourlyMeans17_msst$VWind_10m^2)
 
 #create the storage matrices
 ReOrg_WS16 <- as.data.frame(matrix(0, ncol=(length(HoursOfInterest) + 2), nrow = n16))
@@ -690,8 +690,8 @@ ReOrg_WS16[,7] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 18]
 ReOrg_WS16[,8] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 19]
 ReOrg_WS16[,9] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 20]
 ReOrg_WS16[,10] <- HourlyMeans16$WindSpeed[HourlyMeans16$hour == 21]
-ReOrg_WS16$Dist2Ocean <- HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 12]
-ReOrg_WS16$LandUse <- HourlyMeans16$LandUse[HourlyMeans16$hour == 12]
+ReOrg_WS16$Dist2Ocean <- (HourlyMeans16$Dist2Ocean[HourlyMeans16$hour == 18])/1000
+ReOrg_WS16$LandUse <- HourlyMeans16$LandUse[HourlyMeans16$hour == 18]
 
 
 #Fill the storage matrices - 2017
@@ -705,8 +705,8 @@ ReOrg_WS17[,7] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 18]
 ReOrg_WS17[,8] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 19]
 ReOrg_WS17[,9] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 20]
 ReOrg_WS17[,10] <- HourlyMeans17$WindSpeed[HourlyMeans17$hour == 21]
-ReOrg_WS17$Dist2Ocean <- HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 12]
-ReOrg_WS17$LandUse <- HourlyMeans17$LandUse[HourlyMeans17$hour == 12]
+ReOrg_WS17$Dist2Ocean <- (HourlyMeans17$Dist2Ocean[HourlyMeans17$hour == 18])/1000
+ReOrg_WS17$LandUse <- HourlyMeans17$LandUse[HourlyMeans17$hour == 18]
 
 
 #Fill the storage matrices - 2017 Simulation
@@ -720,8 +720,8 @@ ReOrg_WS17s[,7] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 18]
 ReOrg_WS17s[,8] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 19]
 ReOrg_WS17s[,9] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 20]
 ReOrg_WS17s[,10] <- HourlyMeans17_msst$WindSpeed[HourlyMeans17_msst$hour == 21]
-ReOrg_WS17s$Dist2Ocean <- HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 12]
-ReOrg_WS17s$LandUse <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 12]
+ReOrg_WS17s$Dist2Ocean <- (HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour == 18])/1000
+ReOrg_WS17s$LandUse <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 18]
 ```
 
 
@@ -761,8 +761,8 @@ se    <- apply( m.ws.16$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed16_051925.csv")
-saveRDS(m.ws.16, "../../05AnalysisOutputs/SpDynLM_WindSpeed16_05192.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed16_052925.csv")
+saveRDS(m.ws.16, "../../05AnalysisOutputs/SpDynLM_WindSpeed16_10m_05292.rds")
 
 
 ###############2017 wind speed
@@ -776,8 +776,8 @@ se    <- apply( m.ws.17$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed17_051925.csv")
-saveRDS(m.ws.17, "../../05AnalysisOutputs/SpDynLM_WindSpeed17_05192.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed17_10m_052925.csv")
+saveRDS(m.ws.17, "../../05AnalysisOutputs/SpDynLM_WindSpeed17_05292.rds")
 
 
 ###############2017 simulated wind speed
@@ -791,6 +791,6 @@ se    <- apply( m.ws.17.s$p.beta.samples, 2, sd )
 coeff <- cbind( coeff[,1], se, coeff[,2:3])
 print( signif(coeff, 3) )
 
-write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed17_w16SST_051925.csv")
-saveRDS(m.ws.17.s, "../../05AnalysisOutputs/SpDynLM_WindSpeed17_w16SST_05192.rds")
+write.csv(signif(coeff, 3), "../../05AnalysisOutputs/SpDynLM_Coefficients_WindSpeed17_10m_w16SST_052925.csv")
+saveRDS(m.ws.17.s, "../../05AnalysisOutputs/SpDynLM_WindSpeed17_w16SST_05292.rds")
 ```
