@@ -740,6 +740,17 @@ m.ws.17 <- spDynLM(mods, data=ReOrg_WS17, coords=st_coordinates(coords_UTM),
                starting=starting17, tuning=tuning17, priors=priors17, knots = knots,
                cov.model="exponential", n.samples=n.samples, n.report=500) 
 
+
+#this should work for both datasets
+nobs <- length(HourlyMeans17_msst$GridCell) #number of observations
+coords <- HourlyMeans17_msst[, c("GridCell", "lat", "long")] #points of the observations
+names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
+coords <- unique(coords)
+
+#change your coordinates to UTM so the distances are consistent
+coords_sf <- st_as_sf(coords, coords = c("X", "Y"), crs = 4326)
+coords_UTM <- st_transform(coords_sf, CRS("+proj=utm +zone=15 ellps=WGS84"))
+
 m.ws.17.s <- spDynLM(mods, data=ReOrg_WS17s, coords=st_coordinates(coords_UTM),
                starting=starting17c, tuning=tuning17c, priors=priors17c, knots = knots,
                cov.model="exponential", n.samples=n.samples, n.report=500) 

@@ -107,7 +107,7 @@ main_coords <- c(
   max_lon, min_lat, #bottom right
   min_lon, min_lat #bottom left
 )
-main_box <- create_box(main_coords, "Main Box")
+main_box <- create_box(main_coords, "Overall Region")
 
 # Southwest box
 sw_coords <- c(
@@ -117,7 +117,7 @@ sw_coords <- c(
   -95.8, 28.9, #bottom right
   -96.2, 28.9 #bottom left
 )
-sw_box <- create_box(sw_coords, "SW Box")
+sw_box <- create_box(sw_coords, "Box 1")
 
 # Northeast box
 ne_coords <- c(
@@ -127,7 +127,7 @@ ne_coords <- c(
   -94.4, 30, #bottom right
   -94.8, 30 #bottom left
 )
-ne_box <- create_box(ne_coords, "NE Box")
+ne_box <- create_box(ne_coords, "Box 3")
 
 # Top-left box
 tl_coords <- c(
@@ -137,7 +137,7 @@ tl_coords <- c(
   -96, 30.2, #bottom right
   -96.4, 30.2 #bottom left
 )
-tl_box <- create_box(tl_coords, "Top-Left Box")
+tl_box <- create_box(tl_coords, "Box 2")
 
 # Combine all into one sf object
 all_boxes <- rbind(main_box, sw_box, ne_box, tl_box)
@@ -284,7 +284,7 @@ Starting simple, then can re-arrange to compare them
 ##Box 2 is top left
 ##Box 3 is top right
 
-
+###################################Temperature
 ##2016 Basic Temperature Plot
 ggplot(HourlyMeans16_wBoxes, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as.factor(Box))) + 
   geom_boxplot() + ggtitle("2016 Temperatures by Region") + 
@@ -303,6 +303,47 @@ ggplot(HourlyMeans17s_wBoxes, aes(x=as.factor(hour), y=(X2mTemp-273.15), fill=as
   xlab("Hour") + ylab("Temperature (C)")  + 
    coord_cartesian(ylim = c(0, 25))
 
+
+###################################Humidity
+##2016 Basic Plot
+ggplot(HourlyMeans16_wBoxes, aes(x=as.factor(hour), y=(RelHumid), fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("2016 Relative Humidity by Region") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")  + 
+   coord_cartesian(ylim = c(0, 100))
+
+##2017 Basic Plot
+ggplot(HourlyMeans17_wBoxes, aes(x=as.factor(hour), y=(RelHumid), fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("2017 Relative Humidity by Region") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")  + 
+   coord_cartesian(ylim = c(0, 100))
+
+##2017 Simulated Basic Plot
+ggplot(HourlyMeans17s_wBoxes, aes(x=as.factor(hour), y=(RelHumid), fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Relative Humidity by Region") + 
+  xlab("Hour") + ylab("Relative Humidity (%)")  + 
+   coord_cartesian(ylim = c(0,100))
+
+
+###################################Wind
+##2016 Basic Plot
+ggplot(HourlyMeans16_wBoxes, aes(x=as.factor(hour), y=WindSpeed_10m, fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("2016 Wind Speed by Region") + 
+  xlab("Hour") + ylab("Wind Speed (m/s)")  + 
+   coord_cartesian(ylim = c(0, 6))
+
+##2017 Basic Plot
+ggplot(HourlyMeans17_wBoxes, aes(x=as.factor(hour), y=WindSpeed_10m, fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("2017 Wind Speed by Region") + 
+  xlab("Hour") + ylab("Wind Speed (m/s)")  + 
+   coord_cartesian(ylim = c(0, 6))
+
+##2017 Simulated Basic Plot
+ggplot(HourlyMeans17s_wBoxes, aes(x=as.factor(hour), y=WindSpeed_10m, fill=as.factor(Box))) + 
+  geom_boxplot() + ggtitle("Simulated 2017 Wind Speed by Region") + 
+  xlab("Hour") + ylab("Wind Speed (m/s)")  + 
+   coord_cartesian(ylim = c(0,6))
+
+
 ```
 
 #Next step
@@ -311,3 +352,118 @@ Now I would look at the three boxes comparing MHW to non-MHW both ways
 I suspect you will see a bigger difference between the two 2017 runs for box 2, where the wind probably has to go through the city and is disrupted, compared to what you see in the boxes on either side of the city 
 
 Note, all of these are labelled as crop-ish land use
+
+```{r reformat to compare across years}
+
+#for final storage matrix
+colnms <- c("Hour", "Box", "Temp16", "Temp17", "Temp17s", "TempDiff17m16", "TempDiff17m17s", 
+            "RelHum16", "RelHum17", "RelHum17s", "HumDiff17m16", "HumDiff17m17s",
+            "WindSpeed10m16", "WindSpeed10m17", "WindSpeed10m17s", "WSDiff17m16", "WSDiff17m17s")
+
+#Create df
+BoxMeans <- as.data.frame(matrix(0, nrow = 24*3, ncol=length(colnms)))
+names(BoxMeans) <- colnms
+
+iter <- 1
+
+for (h in c(0:23)){ #hours
+  
+  for (b in c(1:3)){ #boxes
+    
+    BoxMeans$Hour[iter] <- h
+    BoxMeans$Box[iter] <- b
+    
+    #############Temperature
+    BoxMeans$Temp16[iter] <- mean(HourlyMeans16_wBoxes$X2mTemp[HourlyMeans16_wBoxes$hour == h & HourlyMeans16_wBoxes$Box == b])
+    BoxMeans$Temp17[iter] <- mean(HourlyMeans17_wBoxes$X2mTemp[HourlyMeans17_wBoxes$hour == h & HourlyMeans17_wBoxes$Box == b])
+    BoxMeans$Temp17s[iter] <- mean(HourlyMeans17s_wBoxes$X2mTemp[HourlyMeans17s_wBoxes$hour == h & HourlyMeans17s_wBoxes$Box == b])
+    
+    #Calculate the difference
+    BoxMeans$TempDiff17m16[iter] <- BoxMeans$Temp17[iter] - BoxMeans$Temp16[iter]
+    BoxMeans$TempDiff17m17s[iter] <- BoxMeans$Temp17[iter] - BoxMeans$Temp17s[iter]
+    
+    ###############Humidity
+    BoxMeans$RelHum16[iter] <- mean(HourlyMeans16_wBoxes$RelHumid[HourlyMeans16_wBoxes$hour == h & HourlyMeans16_wBoxes$Box == b])
+    BoxMeans$RelHum17[iter] <- mean(HourlyMeans17_wBoxes$RelHumid[HourlyMeans17_wBoxes$hour == h & HourlyMeans17_wBoxes$Box == b])
+    BoxMeans$RelHum17s[iter] <- mean(HourlyMeans17s_wBoxes$RelHumid[HourlyMeans17s_wBoxes$hour == h & HourlyMeans17s_wBoxes$Box == b])
+    
+    #Calculate the difference
+    BoxMeans$HumDiff17m16[iter] <- BoxMeans$RelHum17[iter] - BoxMeans$RelHum16[iter]
+    BoxMeans$HumDiff17m17s[iter] <- BoxMeans$RelHum17[iter] - BoxMeans$RelHum17s[iter]
+    
+    
+    #################Wind Speed
+    BoxMeans$WindSpeed10m16[iter] <- mean(HourlyMeans16_wBoxes$WindSpeed_10m[HourlyMeans16_wBoxes$hour == h & HourlyMeans16_wBoxes$Box == b])
+    BoxMeans$WindSpeed10m17[iter] <- mean(HourlyMeans17_wBoxes$WindSpeed_10m[HourlyMeans17_wBoxes$hour == h & HourlyMeans17_wBoxes$Box == b])
+    BoxMeans$WindSpeed10m17s[iter] <- mean(HourlyMeans17s_wBoxes$WindSpeed_10m[HourlyMeans17s_wBoxes$hour == h & HourlyMeans17s_wBoxes$Box == b])
+    
+    #Calculate the difference
+    BoxMeans$WSDiff17m16[iter] <- BoxMeans$WindSpeed10m17[iter] - BoxMeans$WindSpeed10m16[iter]
+    BoxMeans$WSDiff17m17s[iter] <- BoxMeans$WindSpeed10m17[iter] - BoxMeans$WindSpeed10m17s[iter]
+    
+    #increase the iterator
+    iter <- iter + 1
+  }
+  
+}
+
+
+```
+
+Look at the difference plots
+
+```{r diff plots}
+##Box 1 is bottom left
+##Box 2 is top left
+##Box 3 is top right
+
+###################################Temperature
+##MHW - 2016
+ggplot(BoxMeans, aes(x=as.factor(Hour), y=(TempDiff17m16), group=as.factor(Box))) + 
+  geom_line(aes(color=as.factor(Box)), linewidth=1) + ggtitle("MHW - 2016 Temperatures by Region") +  scale_colour_manual('Box Number', values=c("green", "orange", "blue")) +
+  xlab("Hour") + ylab("Difference in Temperature (C)")  + 
+   coord_cartesian(ylim = c(-1, 6)) +
+  theme_minimal()+ geom_hline(yintercept=0, linetype="dashed")
+
+
+##MHW - 2017s
+ggplot(BoxMeans, aes(x=as.factor(Hour), y=(TempDiff17m17s), group=as.factor(Box))) + 
+  geom_line(aes(color=as.factor(Box)), linewidth=1) + ggtitle("MHW - Simulated 2017 Temperatures by Region") + scale_colour_manual('Box Number', values=c("green", "orange", "blue")) +
+  xlab("Hour") + ylab("Difference in Temperature (C)")  + 
+   coord_cartesian(ylim = c(-1, 6)) +
+  theme_minimal()+ geom_hline(yintercept=0, linetype="dashed")
+
+
+###################################Humidity
+##MHW - 2016
+ggplot(BoxMeans, aes(x=as.factor(Hour), y=(HumDiff17m16), group=as.factor(Box))) + 
+  geom_line(aes(color=as.factor(Box)), linewidth=1) + ggtitle("MHW - 2016 Relative Humidity by Region") + scale_colour_manual('Box Number', values=c("green", "orange", "blue")) +
+  xlab("Hour") + ylab("Difference in Relative Humidity (%)")  + 
+   coord_cartesian(ylim = c(-10, 16)) +
+  theme_minimal()+ geom_hline(yintercept=0, linetype="dashed")
+
+##MHW - 2017s
+ggplot(BoxMeans, aes(x=as.factor(Hour), y=(HumDiff17m17s), group=as.factor(Box))) + 
+  geom_line(aes(color=as.factor(Box)), linewidth=1) + ggtitle("MHW - Simulated 2017 Relative Humidity by Region") + scale_colour_manual('Box Number', values=c("green", "orange", "blue")) +
+  xlab("Hour") + ylab("Difference in Relative Humidity (%)")  + 
+   coord_cartesian(ylim = c(-10,16)) +
+  theme_minimal()+ geom_hline(yintercept=0, linetype="dashed")
+
+
+###################################Wind
+##MHW - 2016
+ggplot(BoxMeans, aes(x=as.factor(Hour), y=WSDiff17m16, group=as.factor(Box))) + 
+  geom_line(aes(color=as.factor(Box)), linewidth=1) + ggtitle("MHW - 2016 Wind Speed by Region") + scale_colour_manual('Box Number', values=c("green", "orange", "blue")) +
+  xlab("Hour") + ylab("Difference in Wind Speed (m/s)")  + 
+   coord_cartesian(ylim = c(-0.5, 3.5)) +
+  theme_minimal()+ geom_hline(yintercept=0, linetype="dashed")
+
+
+##MHW - 2017s
+ggplot(BoxMeans, aes(x=as.factor(Hour), y=WSDiff17m17s, group=as.factor(Box))) + 
+  geom_line(aes(color=as.factor(Box)), linewidth=1) + ggtitle("MHW - Simulated 2017 Wind Speed by Region") + scale_colour_manual('Box Number', values=c("green", "orange", "blue")) +
+  xlab("Hour") + ylab("Difference in Wind Speed (m/s)")  + 
+   coord_cartesian(ylim = c(-0.5,3.5)) +
+  theme_minimal()+ geom_hline(yintercept=0, linetype="dashed")
+
+```
