@@ -15,12 +15,16 @@ library(tmap)
 
 ## Input data
 
+Pulling in both the hourly means and the distance to ocean csv files with some simplification of the land use/land cover types to make it more manageable
+
 ```{r read in data}
+
+#basic wrfoutput data
 HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052725.csv")
 HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052725.csv")
 HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052725.csv")
 
-#More for reference
+#to simplify the land use types
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
             'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest',
             'Mixed Forests', 'Closed Shrublands',  'Open Shrublands', 
@@ -43,6 +47,7 @@ LU_dict$Original_Num <- 1:17
 LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
 
+#distance from ocean pixels
 Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016.csv")
 Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017.csv")
 Dists17s <- read.csv("../../03ProcessedData/Dist2Ocean_2017_w16SST.csv")
@@ -52,7 +57,7 @@ HourlyMeans16$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16$lat 
 HourlyMeans17$Dist2Ocean <- Dists17$Dist2Ocean[Dists16$lat == HourlyMeans17$lat & Dists17$long == HourlyMeans17$long]
 HourlyMeans17_msst$Dist2Ocean <- Dists17s$Dist2Ocean[Dists17s$lat == HourlyMeans17_msst$lat & Dists17s$long == HourlyMeans17_msst$long]
 
-#change the hours
+#########change the hours to local time zone from UTC
 HourDict <- as.data.frame(matrix(0, nrow=24, ncol=2))
 names(HourDict) <- c("Current", "New")
 HourDict$Current <- 0:23
@@ -65,7 +70,7 @@ HourlyMeans16$hour <- HourDict$New[HourlyMeans16$hour + 1]
 HourlyMeans17$hour <- HourDict$New[HourlyMeans17$hour + 1] 
 HourlyMeans17_msst$hour <- HourDict$New[HourlyMeans17_msst$hour + 1] 
 
-#modify land use
+#########modify land use
 HourlyMeans16_modLU <- HourlyMeans16
 HourlyMeans16_modLU$LandUse <- LU_dict$New_Name[HourlyMeans16$LandUse]
 HourlyMeans17_modLU <- HourlyMeans17
@@ -73,7 +78,7 @@ HourlyMeans17_modLU$LandUse <- LU_dict$New_Name[HourlyMeans17$LandUse]
 HourlyMeans17_msst_modLU <- HourlyMeans17_msst
 HourlyMeans17_msst_modLU$LandUse <- LU_dict$New_Name[HourlyMeans17_msst$LandUse]
 
-#wind speed
+########calculate wind speed
 HourlyMeans16_modLU$WindSpeed_10m <- sqrt(HourlyMeans16_modLU$UWind_10m^2 + HourlyMeans16_modLU$VWind_10m^2)
 HourlyMeans17_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_modLU$UWind_10m^2 + HourlyMeans17_modLU$VWind_10m^2)
 HourlyMeans17_msst_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_msst_modLU$UWind_10m^2 + HourlyMeans17_msst_modLU$VWind_10m^2)
@@ -82,6 +87,8 @@ HourlyMeans17_msst_modLU$WindSpeed_10m <- sqrt(HourlyMeans17_msst_modLU$UWind_10
 
 
 #basic visuals of your regions
+
+As background reference to help orient the user to what they will be looking at
 
 ```{r basic vis}
 
@@ -161,6 +168,8 @@ tm_shape(all_boxes) +
 ```
 
 #Now Look at Intersection
+
+Now we want to look at the crop pixels within those three sub-boxes
 
 ```{r points within boxes}
 
@@ -277,7 +286,7 @@ HourlyMeans17s_wBoxes <- HourlyMeans17s_wBoxes[!is.na(HourlyMeans17s_wBoxes$Box)
 
 ##Basic Plots
 
-Starting simple, then can re-arrange to compare them
+Create simple plots of temperature, relative humidity, and wind speed over time for crop pixels within the three boxes
 
 ```{r basic plots}
 ##Box 1 is bottom left
@@ -411,6 +420,8 @@ for (h in c(0:23)){ #hours
 ```
 
 Look at the difference plots
+
+Plots with header of 2016 are comparing the MHW event to the 2016 non-MHW event. Plots with header of 2017s are comparing the MHW event to the simulated 2017 with 2016 SST non-MHW data. 
 
 ```{r diff plots}
 ##Box 1 is bottom left
