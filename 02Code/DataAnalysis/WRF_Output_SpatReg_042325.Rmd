@@ -37,7 +37,7 @@ HourlyMeans16 <- read.csv("../../03ProcessedData/HourlyMeans_2016_052725.csv")
 HourlyMeans17 <- read.csv("../../03ProcessedData/HourlyMeans_2017_052725.csv")
 HourlyMeans17_msst <- read.csv("../../03ProcessedData/HourlyMeans_2017_w16SST_052725.csv")
 
-#More for reference
+#################To simplify land use land cover types, also helps user know what is getting simplified into what
 LU_names = c('Evergreen Needleleaf Forest', 'Evergreen Broadleaf Forest', 
             'Deciduous Needleleaf Forest', 'Deciduous Broadleaf Forest',
             'Mixed Forests', 'Closed Shrublands',  'Open Shrublands', 
@@ -60,7 +60,7 @@ LU_dict$Original_Num <- 1:17
 LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
 
-#change the hours
+####################change the hours to local time zone (from UTC)
 HourDict <- as.data.frame(matrix(0, nrow=24, ncol=2))
 names(HourDict) <- c("Current", "New")
 HourDict$Current <- 0:23
@@ -101,11 +101,9 @@ So we would need to account for a few things
   - distance from ocean
   - hour
   
-The relationship should change throughout the day, you see that the slopes of some of these relationships shift over time...
-* hour x land use (really key)
-* hour x distance2ocean? 
+The relationship should change throughout the day, you see that the slopes of some of these relationships shift over time.
 
-Alternatively, could run a few separate models at different times of day so you avoid some of the interactive effects
+Rather than having a ton of interactive effects, can run a spatio-temporal model with each hour being treated as a time step. Going to focusin on loosely these hours:
 * early afternoon (12-14)
 * peak temp (15-17)
 * evening (18-21)
@@ -114,8 +112,8 @@ spBayes information
 * https://faculty.ucr.edu/~jflegal/203/spBayes_tutorial.pdf
 * https://cran.r-project.org/web/packages/spBayes/spBayes.pdf
 
-If you do spDynLm I think you end up with different regressions for each hour
-* so you end up with temps at each hour as your y variables
+With spDynLm
+* you end up with temps at each hour as your y variables
 * then you coordinates are your spatial random effects
 * your fixed effects are then land use and distance2ocean
 
@@ -123,9 +121,6 @@ If you do spDynLm I think you end up with different regressions for each hour
 ```{r create knots}
 
 #this should work for both datasets
-#nobs <- length(HourlyMeans17$GridCell) #number of observations
-#coords <- HourlyMeans17[, c("GridCell", "lat", "long")] #points of the observations
-
 nobs <- length(HourlyMeans17$GridCell)
 coords <- HourlyMeans17[HourlyMeans17$hour == 18, c("GridCell", "lat", "long")] #just to not duplic
 names(coords) <- c("GridCell", "Y", "X") #yes I know X should be longitude, but I somehow flipped it earlier
@@ -163,6 +158,8 @@ knots <- st_coordinates(knots_test$geometry[order(knots_test$within_2000, decrea
 ```
 
 Now that we have some spatial dimension reduction, re-organize the data into the format we need
+
+Note that humidity is currently commented out because am not focusing on those model results at the moment
 
 ```{r reformat data}
 #reduce your landuse categories
@@ -390,9 +387,11 @@ Temperature should be fine this way, but relative humidity is bounded between 0 
 
 Update: from EDA seems like you stay between RH 30 and 80, so should be able to approximate it as continuous linear rather than having to deal with a beta regression
 
-You should also decide on the covariance model based on the EDA. Exponential is pretty normal I think...
+You should also decide on the covariance model based on the EDA. Exponential is pretty normal
 
 Update from EDA: Definitely have spatial structure, the difference seems to peak somewhere between 0.5 and 1.0 (distance)
+
+#Run models for 2016 non-MHW
 
 ```{r regs 2016}
 
@@ -724,6 +723,7 @@ ReOrg_WS17s$Dist2Ocean <- (HourlyMeans17_msst$Dist2Ocean[HourlyMeans17_msst$hour
 ReOrg_WS17s$LandUse <- HourlyMeans17_msst$LandUse[HourlyMeans17_msst$hour == 18]
 ```
 
+#Run the models
 
 ```{r regs WS}
 
