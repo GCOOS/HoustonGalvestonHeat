@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL       #Send email on all events
 #SBATCH --mail-user=rpkamakura@tamu.edu  #send email to me
 
-cd $SCRATCH/LIBRARIES/WPS
+cd $SCRATCH/MHW_WRF/WPS
 module purge
 module load GCC/11.3.0 OpenMPI/4.1.4 WPS/4.4-dmpar
 module load netCDF/4.9.0

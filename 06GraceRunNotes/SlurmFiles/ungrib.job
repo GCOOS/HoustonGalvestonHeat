@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL       #Send email on all events
 #SBATCH --mail-user=rpkamakura@tamu.edu  #send email to me
 
-cd $SCRATCH/LIBRARIES/WPS
+cd $SCRATCH/MHW_WRF/WPS
 module purge
 module load iccifort/2019.5.281  impi/2018.5.288  WPS/4.1-dmpar
 #export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
