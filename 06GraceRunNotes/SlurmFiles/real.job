@@ -14,11 +14,11 @@
  #nproc_y = 8
 #/
 
-cd $SCRATCH/LIBRARIES/WRFV4.6.0/run
+cd $SCRATCH/MHW_WRF/WRF/run
 module purge
-module load foss/2022a
-module load GCCcore/11.3.0 bzip2/1.0.8
-module load netCDF-combined/4.9.3-gompi-2022a PnetCDF/1.12.3
+module load foss/2024a
+module load GCCcore/14.2.0 bzip2/1.0.8
+module load netCDF-combined/4.9.3-gompi-2023a PnetCDF/1.12.3
 export I_MPI_PMI_LIBRARY=usr/lib64/libmpi.so
 export NETCDF=$EBROOTNETCDFCOMBINED
 export HDF5=$EBROOTHDF5

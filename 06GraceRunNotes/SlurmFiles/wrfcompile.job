@@ -9,11 +9,12 @@
 #SBATCH --mail-type=ALL         #send email on all events
 #SBATCH --mail-user=rpkamakura@tamu.edu   #send email to Ren Kamakura
 
-cd $SCRATCH/LIBRARIES/WRF
+cd $SCRATCH/MHW_WRF/WRF
 
 module purge
-module load foss/2020a
-module load netCDF-combined/4.7.4-gompi-2020a PnetCDF/1.12.1
+module load foss/2024a
+module load GCCcore/14.2.0 bzip2/1.0.8
+module load netCDF-combined/4.9.3-gompi-2023a PnetCDF/1.12.3
 export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
 export NETCDF=$EBROOTNETCDF
 export HDF5=$EBROOTHDF5
