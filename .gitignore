@@ -15,3 +15,5 @@
 /03ProcessedData
 02Code/DataAnalysis/.RData
 02Code/DataAnalysis/.RDataTmp
+*.grib
+*.idx
