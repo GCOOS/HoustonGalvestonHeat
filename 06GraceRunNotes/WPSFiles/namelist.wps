@@ -25,7 +25,7 @@
  truelat1  =  27.85,
  truelat2  =  27.85,
  stand_lon = 0,
- geog_data_path = '../GeographicData/WPS_GEOG'
+ geog_data_path = '../GeographicData'
 /
 
 
@@ -35,7 +35,7 @@
 /
 
 &metgrid
- fg_name = 'SFC','PL','SST',
+ fg_name = 'SFC','PL',
  io_form_metgrid = 2,
  opt_metgrid_tbl_path = './'
 /
