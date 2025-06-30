@@ -1,0 +1,1 @@
+UK Met Office. 2023. GHRSST Level 4 OSTIA Global Reprocessed Foundation Sea Surface Temperature Analysis (GDS2). Ver. 2.0. PO.DAAC, CA, USA. Dataset accessed 2025-06-27 at https://doi.org//10.5067/GHOST-4RM02
