@@ -17,3 +17,4 @@
 02Code/DataAnalysis/.RDataTmp
 *.grib
 *.idx
+*.nc
