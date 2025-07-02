@@ -122,6 +122,19 @@ HourlyMeans17_modLU$landuse <- LU_dict$New_Name[HourlyMeans17$landuse]
 HourlyMeans17_msst_modLU <- HourlyMeans17_msst
 HourlyMeans17_msst_modLU$landuse <- LU_dict$New_Name[HourlyMeans17_msst$landuse]
 
+#Get the dist2 ocean values - note that the NAs will be ocean points
+HourlyMeans16_modLU <- HourlyMeans16_modLU %>%
+  left_join(Dists16 %>% select(lat, long, Dist2Ocean), 
+            by = c("lat" = "lat", "lon" = "long"))
+
+HourlyMeans17_modLU <- HourlyMeans17_modLU %>%
+  left_join(Dists17 %>% select(lat, long, Dist2Ocean), 
+            by = c("lat" = "lat", "lon" = "long"))
+
+HourlyMeans17_msst_modLU <- HourlyMeans17_msst_modLU %>%
+  left_join(Dists17s %>% select(lat, long, Dist2Ocean), 
+            by = c("lat" = "lat", "lon" = "long"))
+
 LandCells16 <- HourlyMeans16_modLU[!is.na(HourlyMeans16_modLU$Dist2Ocean),]
 LandCells17 <- HourlyMeans17_modLU[!is.na(HourlyMeans17_modLU$Dist2Ocean),]
 LandCells17s <- HourlyMeans17_msst_modLU[!is.na(HourlyMeans17_msst_modLU$Dist2Ocean),]
@@ -218,19 +231,7 @@ ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),]
 ```
 See if you can compare the ocean to land somehow, Dist2Ocean might be able to help
 ```{r slp identify land/ocean grid cells}
-#Get the dist2 ocean values - note that the NAs will be ocean points
-HourlyMeans16_modLU <- HourlyMeans16_modLU %>%
-  left_join(Dists16 %>% select(lat, long, Dist2Ocean), 
-            by = c("lat" = "lat", "lon" = "long"))
-
-HourlyMeans17_modLU <- HourlyMeans17_modLU %>%
-  left_join(Dists17 %>% select(lat, long, Dist2Ocean), 
-            by = c("lat" = "lat", "lon" = "long"))
-
-HourlyMeans17_msst_modLU <- HourlyMeans17_msst_modLU %>%
-  left_join(Dists17s %>% select(lat, long, Dist2Ocean), 
-            by = c("lat" = "lat", "lon" = "long"))
-
+#Get the ocean cells
 OceanCells16 <- HourlyMeans16_modLU[is.na(HourlyMeans16_modLU$Dist2Ocean),]
 OceanCells17 <- HourlyMeans17_modLU[is.na(HourlyMeans17_modLU$Dist2Ocean),]
 OceanCells17s <- HourlyMeans17_msst_modLU[is.na(HourlyMeans17_msst_modLU$Dist2Ocean),]
@@ -285,17 +286,20 @@ ggplot(LandCells17s[c(LandCells17s$hour %in% focalHRS),], aes(x=as.factor(hour),
 ```{r llc}
 
 ##EDA of wind speed, just to see
-ggplot(HourlyMeans16_modLU[c(HourlyMeans16_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
+ggplot(LandCells16[c(LandCells16$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
   geom_boxplot() + ggtitle("2016 Low Level Clouds") + 
-  xlab("Hour") + ylab("Low Level Clouds")
+  xlab("Hour") + ylab("Low Level Clouds") + 
+   coord_cartesian(ylim = c(0, 0.35))
 
-ggplot(HourlyMeans17_modLU[c(HourlyMeans17_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
+ggplot(LandCells17[c(LandCells17$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
   geom_boxplot() + ggtitle("2017 Low Level Clouds") + 
-  xlab("Hour") + ylab("Low Level Clouds") 
+  xlab("Hour") + ylab("Low Level Clouds")  + 
+   coord_cartesian(ylim = c(0, 0.35))
 
-ggplot(HourlyMeans17_msst_modLU[c(HourlyMeans17_msst_modLU$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
+ggplot(LandCells17s[c(LandCells17s$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
   geom_boxplot() + ggtitle("Simulated 2017 Low Level Clouds") + 
-  xlab("Hour") + ylab("Low Level Clouds")
+  xlab("Hour") + ylab("Low Level Clouds") + 
+   coord_cartesian(ylim = c(0, 0.35))
 ```
 
 #EDA differences between MHW and non-MHW
