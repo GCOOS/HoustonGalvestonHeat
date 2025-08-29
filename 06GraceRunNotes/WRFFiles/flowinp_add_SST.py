@@ -11,12 +11,13 @@ import netCDF4 as nc
 from scipy.interpolate import RegularGridInterpolator
 import glob
 
-def process_domain(infile, outfile, wrfinput_file):
+def process_domain(infile, outfile, wrfinput_file, wrfinput_outfile, has_perturbation=False):
     """Process SST data for a single domain"""
     
     # Copy backup file to working file
     shutil.copy(infile, outfile)
-    
+    shutil.copy(wrfinput_file, wrfinput_outfile)
+
     # Read coordinate grids from wrfinput file
     with nc.Dataset(wrfinput_file, 'r') as wrfinput:
         XLAT = wrfinput.variables['XLAT'][:][0]
@@ -37,6 +38,8 @@ def process_domain(infile, outfile, wrfinput_file):
     loop_num = (tlen - 1) // 8 + 1
     print('loop_num', loop_num)
     
+    perturbation = np.random.uniform(-0.25, 0.25, size=(xlen, ylen))
+
     for i in range(loop_num):
         obsfile = OBS_files[i]
 
@@ -75,18 +78,24 @@ def process_domain(infile, outfile, wrfinput_file):
                 break
             print('Current t', t)
             assert t//8 == i
-            SSTold[t, :, :] = dummy
+            if has_perturbation:
+                SSTold[t, :, :] = dummy + perturbation
+            else:
+                SSTold[t, :, :] = dummy
     
     print('Saving the result')
-    with nc.Dataset(outfile, 'r+') as ncid:
-        ncid.variables['SST'][:] = SSTold
+    with nc.Dataset(outfile, 'r+') as ncid1:
+        ncid1.variables['SST'][:] = SSTold
     
     SST_first = SSTold[0:1, :, :]
     
-    with nc.Dataset(wrfinput_file, 'r+') as ncid:
-        # print(ncid.variables['SST'][:].shape)
-        ncid.variables['SST'][:] = SST_first
-        # print(ncid.variables['SST'][:].shape)
+    with nc.Dataset(wrfinput_outfile, 'r+') as ncid2:
+        # print(ncid2.variables['SST'][:].shape)
+        ncid2.variables['SST'][:] = SST_first
+        if has_perturbation:
+            ncid2.variables['T'][:] = ncid2.variables['T'][:] + perturbation[np.newaxis, np.newaxis, :, :]
+            ncid2.variables['T2'][:] = ncid2.variables['T2'][:] + perturbation[np.newaxis, :, :]
+        # print(ncid2.variables['SST'][:].shape)
 
     print('Done')
 
@@ -97,10 +106,10 @@ def main():
     os.chdir(script_dir)
     
     # Process domain 1 (d01)
-    process_domain('wrflowinp_d01_backup', 'wrflowinp_d01', 'wrfinput_d01')
+    process_domain('wrflowinp_d01_backup', 'wrflowinp_d01', 'wrfinput_d01_backup', 'wrfinput_d01', True)
     
     # Process domain 2 (d02)
-    process_domain('wrflowinp_d02_backup', 'wrflowinp_d02', 'wrfinput_d02')
+    process_domain('wrflowinp_d02_backup', 'wrflowinp_d02', 'wrfinput_d02_backup', 'wrfinput_d02', True)
 
 
 if __name__ == "__main__":
