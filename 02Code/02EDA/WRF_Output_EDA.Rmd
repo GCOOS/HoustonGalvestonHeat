@@ -58,8 +58,8 @@ LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
 
 #distance from ocean pixels
-Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2016_0.csv")
-Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2017_0.csv")
+Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016_0.csv")
+Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017_0.csv")
 
 ##combine
 HourlyMeans16_0$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16_0$lat & Dists16$long == HourlyMeans16_0$lon]
@@ -108,28 +108,22 @@ focalHRS <- 8:21
 ###############create new df with box labels
 #2016
 HourlyMeans16_0wb <- HourlyMeans16_0 %>% 
-  filter(landuse != "Water") %>%
   mutate(sim="sim1")
 
 HourlyMeans16_1wb <- HourlyMeans16_1 %>% 
-  filter(landuse != "Water") %>%
   mutate(sim="sim2")
 
 HourlyMeans16_2wb <- HourlyMeans16_2 %>% 
-  filter(landuse != "Water") %>%
   mutate(sim="sim3")
 
 ###2017
 HourlyMeans17_0wb <- HourlyMeans17_0 %>% 
-  filter(landuse != "Water") %>%
   mutate(sim="sim1")
 
 HourlyMeans17_1wb <- HourlyMeans17_1 %>% 
-  filter(landuse != "Water") %>%
   mutate(sim="sim2")
 
 HourlyMeans17_2wb <- HourlyMeans17_2 %>% 
-  filter(landuse != "Water") %>%
   mutate(sim="sim3")
 
 ```
@@ -138,8 +132,10 @@ HourlyMeans17_2wb <- HourlyMeans17_2 %>%
 #this is if you want to compare the dfs for the simulations versus the baseline for temperature, rh, slp, and wspd10
 
 HourlyMeans16_wb <- bind_rows(HourlyMeans16_0wb, HourlyMeans16_1wb, HourlyMeans16_2wb)
-
 HourlyMeans17_wb <- bind_rows(HourlyMeans17_0wb, HourlyMeans17_1wb, HourlyMeans17_2wb)
+
+HourlyMeans16_wb_lo <- HourlyMeans16_wb %>% filter(landuse != "Water")
+HourlyMeans17_wb_lo <- HourlyMeans17_wb %>% filter(landuse != "Water")
 
 ```
 
@@ -154,12 +150,12 @@ This section is meant to give us a background sense of whether our planned model
 
 ```{r figs section 2}
 ############################temp and land use + hour
-ggplot(HourlyMeans16_wb[c(HourlyMeans16_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=(T2-273.15), fill=landuse)) + 
+ggplot(HourlyMeans16_wb_lo[c(HourlyMeans16_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(T2-273.15), fill=landuse)) + 
   geom_boxplot()  + ggtitle("2016 Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature (C)")  + 
    coord_cartesian(ylim = c(5, 25))
 
-ggplot(HourlyMeans17_wb[c(HourlyMeans17_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=(T2-273.15), fill=landuse)) + 
+ggplot(HourlyMeans17_wb_lo[c(HourlyMeans17_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(T2-273.15), fill=landuse)) + 
   geom_boxplot()  + ggtitle("2017 Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature (C)")  + 
    coord_cartesian(ylim = c(5, 25))
@@ -170,12 +166,12 @@ ggplot(HourlyMeans17_wb[c(HourlyMeans17_wb$hour %in% focalHRS),], aes(x=as.facto
 ```{r humidity eda}
 
 ####################Relative Humidity
-ggplot(HourlyMeans16_wb[c(HourlyMeans16_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=rh2, fill=landuse)) + 
+ggplot(HourlyMeans16_wb_lo[c(HourlyMeans16_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=rh2, fill=landuse)) + 
   geom_boxplot()+ ggtitle("2016 Relative Humidity by Land Use") + 
   xlab("Hour") + ylab("Relative Humidity (%)") + 
    coord_cartesian(ylim = c(0, 100))
 
-ggplot(HourlyMeans17_wb[c(HourlyMeans17_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=rh2, fill=landuse)) + 
+ggplot(HourlyMeans17_wb_lo[c(HourlyMeans17_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=rh2, fill=landuse)) + 
   geom_boxplot() + ggtitle("2017 Relative Humidity by Land Use") + 
   xlab("Hour") + ylab("Relative Humidity (%)") + 
    coord_cartesian(ylim = c(0, 100))
@@ -189,19 +185,18 @@ ggplot(HourlyMeans17_wb[c(HourlyMeans17_wb$hour %in% focalHRS),], aes(x=as.facto
 ```{r wind speed}
 
 ##EDA of wind speed, just to see
-ggplot(HourlyMeans16_wb[c(HourlyMeans16_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=(wspd10), fill=landuse)) + 
+ggplot(HourlyMeans16_wb_lo[c(HourlyMeans16_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(wspd10), fill=landuse)) + 
   geom_boxplot() + ggtitle("2016 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)")  + 
    coord_cartesian(ylim = c(0, 10))
 
-ggplot(HourlyMeans17_wb[c(HourlyMeans17_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=(wspd10), fill=landuse)) + 
+ggplot(HourlyMeans17_wb_lo[c(HourlyMeans17_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(wspd10), fill=landuse)) + 
   geom_boxplot() + ggtitle("2017 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind speed (m/s)")  + 
    coord_cartesian(ylim = c(0, 10))
 
 ```
 
-RESTART EDITING/UPDATING THE CODE HERE  
 
 
 ##Sea Level pressure
@@ -211,89 +206,77 @@ Ideally want to look at pressure differential between ocean and land, can have t
 ```{r slp}
 
 ##EDA of slp
-ggplot(HourlyMeans16_wb[c(HourlyMeans16_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slp), fill=landuse)) + 
+ggplot(HourlyMeans16_wb_lo[c(HourlyMeans16_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slp), fill=landuse)) + 
   geom_boxplot() + ggtitle("2016 Sea Level Pressure by Land Use") + 
   xlab("Hour") + ylab("Sea Level Pressure") + 
-   coord_cartesian(ylim = c(1009, 1016))
+   coord_cartesian(ylim = c(1009, 1018))
 
-ggplot(HourlyMeans17_wb[c(HourlyMeans17_wb$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slp), fill=landuse)) + 
+ggplot(HourlyMeans17_wb_lo[c(HourlyMeans17_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slp), fill=landuse)) + 
   geom_boxplot() + ggtitle("2017 Sea Level Pressure by Land Use") + 
   xlab("Hour") + ylab("Sea Level Pressure")  + 
-   coord_cartesian(ylim = c(1009, 1016))
+   coord_cartesian(ylim = c(1009, 1018))
 ```
 
 
 See if you can compare the ocean to land somehow, Dist2Ocean might be able to help
 ```{r slp identify land/ocean grid cells}
 #Get the ocean cells
-OceanCells16 <- HourlyMeans16_modLU[is.na(HourlyMeans16_modLU$Dist2Ocean),]
-OceanCells17 <- HourlyMeans17_modLU[is.na(HourlyMeans17_modLU$Dist2Ocean),]
-OceanCells17s <- HourlyMeans17_msst_modLU[is.na(HourlyMeans17_msst_modLU$Dist2Ocean),]
+OceanCells16 <- HourlyMeans16_wb[HourlyMeans16_wb$Dist2Ocean < 995 & HourlyMeans16_wb$landuse== "Water",] #imperfect but this should be all water adjacent to other ocean pixels
+OceanCells17 <- HourlyMeans17_wb[HourlyMeans17_wb$Dist2Ocean < 995 & HourlyMeans17_wb$landuse== "Water",]
 
 Ocean16_meanSLP <- OceanCells16 %>%  
-  group_by(hour) %>%
+  group_by(hour, sim) %>%
   summarize_at(vars(slp), list(meanSLP=mean))
 
 Ocean17_meanSLP <- OceanCells17 %>%  
-  group_by(hour) %>%
+  group_by(hour, sim) %>%
   summarize_at(vars(slp), list(meanSLP=mean))
 
-Ocean17s_meanSLP <- OceanCells17s %>%  
-  group_by(hour) %>%
-  summarize_at(vars(slp), list(meanSLP=mean))
-
-HourlyMeans16_wb <- LandCells16 %>%
-  left_join(Ocean16_meanSLP, by = "hour") %>%
+#should ideally adjust for the scenario in here.....
+HourlyMeans16_wb_lo <- HourlyMeans16_wb_lo %>%
+  left_join(Ocean16_meanSLP, by = c('hour', 'sim')) %>%
   mutate(slpDiff = slp - meanSLP)
 
-LandCells17 <- LandCells17 %>%
+HourlyMeans17_wb_lo <- HourlyMeans17_wb_lo %>%
   left_join(Ocean17_meanSLP, by = "hour") %>%
-  mutate(slpDiff = slp - meanSLP)
-
-LandCells17s <- LandCells17s %>%
-  left_join(Ocean17s_meanSLP, by = "hour") %>%
   mutate(slpDiff = slp - meanSLP)
 ```
 
 Now visualize the slp difference over time
 
+This is consistent with a reduced land breeze but not a super clear difference in the sea breeze (maybe an ever so slight reduction)
+
 ```{r slp Diff}
 
 ##EDA of wind speed, just to see
-ggplot(LandCells16[c(LandCells16$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slpDiff), fill=landuse)) + 
+ggplot(HourlyMeans16_wb_lo[c(HourlyMeans16_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slpDiff), fill=landuse)) + 
   geom_boxplot() + ggtitle("2016 Sea Level Pressure Difference (to Ocean) by Land Use") + 
   xlab("Hour") + ylab("Sea Level Pressure Difference (to Ocean)") + 
    coord_cartesian(ylim = c(-3, 1))
 
-ggplot(LandCells17[c(LandCells17$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slpDiff), fill=landuse)) + 
+ggplot(HourlyMeans17_wb_lo[c(HourlyMeans17_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slpDiff), fill=landuse)) + 
   geom_boxplot() + ggtitle("2017 Sea Level Pressure Difference (to Ocean) by Land Use") + 
   xlab("Hour") + ylab("Sea Level Pressure Difference (to Ocean)") + 
    coord_cartesian(ylim = c(-3, 1))
 
-ggplot(LandCells17s[c(LandCells17s$hour %in% focalHRS),], aes(x=as.factor(hour), y=(slpDiff), fill=landuse)) + 
-  geom_boxplot() + ggtitle("Simulated 2017 Sea Level Pressure Difference (to Ocean) by Land Use") + 
-  xlab("Hour") + ylab("Sea Level Pressure Difference (to Ocean)") + 
-   coord_cartesian(ylim = c(-3, 1))
 ```
 
 ##Low level Clouds
+
+Noticeably reduced low level clouds in the morning and a bit at night
 ```{r llc}
 
 ##EDA of wind speed, just to see
-ggplot(LandCells16[c(LandCells16$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
+ggplot(HourlyMeans16_wb_lo[c(HourlyMeans16_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
   geom_boxplot() + ggtitle("2016 Low Level Clouds") + 
   xlab("Hour") + ylab("Low Level Clouds") + 
-   coord_cartesian(ylim = c(0, 0.35))
+   coord_cartesian(ylim = c(0, 0.5))
 
-ggplot(LandCells17[c(LandCells17$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
+ggplot(HourlyMeans17_wb_lo[c(HourlyMeans17_wb_lo$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
   geom_boxplot() + ggtitle("2017 Low Level Clouds") + 
   xlab("Hour") + ylab("Low Level Clouds")  + 
-   coord_cartesian(ylim = c(0, 0.35))
+   coord_cartesian(ylim = c(0, 0.5))
 
-ggplot(LandCells17s[c(LandCells17s$hour %in% focalHRS),], aes(x=as.factor(hour), y=(llc))) + 
-  geom_boxplot() + ggtitle("Simulated 2017 Low Level Clouds") + 
-  xlab("Hour") + ylab("Low Level Clouds") + 
-   coord_cartesian(ylim = c(0, 0.35))
 ```
 
 #EDA differences between MHW and non-MHW
@@ -304,10 +287,10 @@ Note: since I am averaging, this is very coarse, it reduces all the variation wi
 
 ```{r means by LU}
 #create storage matrix
-colNms <- c("Hour", "landuse", "MeanRH16", "MeanRH17", "MeanRH17s", 
-            "MeanTemp16", "MeanTemp17", "MeanTemp17s", "MeanWSp16", 
-            "MeanWSp17", "MeanWSp17s", "MeanSLP16", "MeanSLP17", "MeanSLP17s",
-            "MeanSLP16Diff", "MeanSLP17Diff", "MeanSLP17sDiff")
+colNms <- c("Hour", "landuse", "MeanRH16", "MeanRH17", 
+            "MeanTemp16", "MeanTemp17", "MeanWSp16", 
+            "MeanWSp17", "MeanSLP16", "MeanSLP17",
+            "MeanSLP16Diff", "MeanSLP17Diff", "MeanLLC16", "MeanLLC17")
 uLU <- unique(LU_dict$New_Name)
 uLUnm <- unique(LU_dict$New_Num)
 HourlyMean_byLU <- as.data.frame(matrix(0, ncol=length(colNms), nrow=length(uLU)*24))
@@ -319,30 +302,32 @@ smat_ind <- 1
 for (h in 0:23){
   
   #get hourly data
-  hr16 <- LandCells16[LandCells16$hour == h, ]
-  hr17 <- LandCells17[LandCells17$hour == h, ]
-  hr17s <- LandCells17s[LandCells17s$hour == h, ]
+  hr16 <- HourlyMeans16_wb_lo[HourlyMeans16_wb_lo$hour == h, ]
+  hr17 <- HourlyMeans17_wb_lo[HourlyMeans17_wb_lo$hour == h, ]
   
   for (l in 1:length(uLUnm)){
     
     HourlyMean_byLU$Hour[smat_ind] <- h
     HourlyMean_byLU$landuse[smat_ind] <- uLU[l]
+    
     HourlyMean_byLU$MeanRH16[smat_ind] <- mean(hr16$rh2[hr16$landuse == uLU[l]])
     HourlyMean_byLU$MeanRH17[smat_ind] <- mean(hr17$rh2[hr17$landuse == uLU[l]])
-    HourlyMean_byLU$MeanRH17s[smat_ind] <- mean(hr17s$rh2[hr17s$landuse == uLU[l]])
+    
     HourlyMean_byLU$MeanTemp16[smat_ind] <- mean(hr16$T2[hr16$landuse == uLU[l]])
     HourlyMean_byLU$MeanTemp17[smat_ind] <- mean(hr17$T2[hr17$landuse == uLU[l]])
-    HourlyMean_byLU$MeanTemp17s[smat_ind] <- mean(hr17s$T2[hr17s$landuse == uLU[l]])
-    HourlyMean_byLU$MeanWSp16[smat_ind] <- mean(hr16$wspd[hr16$landuse == uLU[l]])
-    HourlyMean_byLU$MeanWSp17[smat_ind] <- mean(hr17$wspd[hr17$landuse == uLU[l]])
-    HourlyMean_byLU$MeanWSp17s[smat_ind] <- mean(hr17s$wspd[hr17s$landuse == uLU[l]])
+    
+    HourlyMean_byLU$MeanWSp16[smat_ind] <- mean(hr16$wspd10[hr16$landuse == uLU[l]])
+    HourlyMean_byLU$MeanWSp17[smat_ind] <- mean(hr17$wspd10[hr17$landuse == uLU[l]])
+    
     HourlyMean_byLU$MeanSLP16[smat_ind] <- mean(hr16$slp[hr16$landuse == uLU[l]])
     HourlyMean_byLU$MeanSLP17[smat_ind] <- mean(hr17$slp[hr17$landuse == uLU[l]])
-    HourlyMean_byLU$MeanSLP17s[smat_ind] <- mean(hr17s$slp[hr17s$landuse == uLU[l]])
+    
     HourlyMean_byLU$MeanSLP16Diff[smat_ind] <- mean(hr16$slpDiff[hr16$landuse == uLU[l]])
     HourlyMean_byLU$MeanSLP17Diff[smat_ind] <- mean(hr17$slpDiff[hr17$landuse == uLU[l]])
-    HourlyMean_byLU$MeanSLP17sDiff[smat_ind] <- mean(hr17s$slpDiff[hr17s$landuse == uLU[l]])
     
+    HourlyMean_byLU$MeanLLC16[smat_ind] <- mean(hr16$llc[hr16$landuse == uLU[l]])
+    HourlyMean_byLU$MeanLLC17[smat_ind] <- mean(hr17$llc[hr17$landuse == uLU[l]])
+
     #increase the iteration
     smat_ind <- smat_ind + 1
   }
@@ -353,16 +338,12 @@ for (h in 0:23){
 HourlyMean_byLU <- HourlyMean_byLU[!is.na(HourlyMean_byLU$MeanTemp16),]
 
 #calculate your differences
-HourlyMean_byLU$DiffRH17m16 <- HourlyMean_byLU$MeanRH17 - HourlyMean_byLU$MeanRH16
-HourlyMean_byLU$DiffRH17m17s <- HourlyMean_byLU$MeanRH17 - HourlyMean_byLU$MeanRH17s
-HourlyMean_byLU$DiffTemp17m16 <- HourlyMean_byLU$MeanTemp17 - HourlyMean_byLU$MeanTemp16
-HourlyMean_byLU$DiffTemp17m17s <- HourlyMean_byLU$MeanTemp17 - HourlyMean_byLU$MeanTemp17s
-HourlyMean_byLU$DiffWS17m16 <- HourlyMean_byLU$MeanWSp17 - HourlyMean_byLU$MeanWSp16
-HourlyMean_byLU$DiffWS17m17s <- HourlyMean_byLU$MeanWSp17 - HourlyMean_byLU$MeanWSp17s
-HourlyMean_byLU$DiffSLP17m16 <- HourlyMean_byLU$MeanSLP17 - HourlyMean_byLU$MeanSLP16
-HourlyMean_byLU$DiffSLP17m17s <- HourlyMean_byLU$MeanSLP17 - HourlyMean_byLU$MeanSLP17s
-HourlyMean_byLU$DiffSLP17m16Diff <- HourlyMean_byLU$MeanSLP17Diff - HourlyMean_byLU$MeanSLP16Diff
-HourlyMean_byLU$DiffSLP17m17sDiff <- HourlyMean_byLU$MeanSLP17Diff - HourlyMean_byLU$MeanSLP17sDiff
+HourlyMean_byLU$DiffRH <- HourlyMean_byLU$MeanRH17 - HourlyMean_byLU$MeanRH16
+HourlyMean_byLU$DiffTemp <- HourlyMean_byLU$MeanTemp17 - HourlyMean_byLU$MeanTemp16
+HourlyMean_byLU$DiffWS <- HourlyMean_byLU$MeanWSp17 - HourlyMean_byLU$MeanWSp16
+HourlyMean_byLU$DiffSLP <- HourlyMean_byLU$MeanSLP17 - HourlyMean_byLU$MeanSLP16
+HourlyMean_byLU$DiffoDiffSLP <- HourlyMean_byLU$MeanSLP17Diff - HourlyMean_byLU$MeanSLP16Diff
+HourlyMean_byLU$DiffLLC <- HourlyMean_byLU$MeanLLC17 - HourlyMean_byLU$MeanLLC16
 ```
 
 
@@ -371,15 +352,10 @@ Now plot out our results so we can look at it a bit more clearly
 ```{r diff visuals temp}
 
 ###difference plots
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp17m16), group=landuse)) + 
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp), group=landuse)) + 
   geom_line(aes(color=landuse), size=1) + ggtitle("2017 Minus 2016 Temperatures by Land Use") + 
   xlab("Hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 6)) + theme_minimal() 
-
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffTemp17m17s), group=landuse)) + 
-  geom_line(aes(color=landuse), size=1) + ggtitle("2017 Minus Simulated 2017 Temperatures by Land Use") + 
-  xlab("Hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 6))  + theme_minimal() 
+   coord_cartesian(ylim = c(-1, 2)) + theme_minimal() 
 
 
 ####Simple figures to make sure the individual averages over time are reasonable
@@ -394,11 +370,6 @@ ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanTemp17-273.15), group=land
   xlab("Hour") + ylab("Temperature (C)") + 
    coord_cartesian(ylim = c(4, 24)) + theme_minimal() 
 
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanTemp17s-273.15), group=landuse)) + 
-  geom_line(aes(color=landuse), size=1) + ggtitle("Simulated 2017 Temperatures by Land Use") + 
-  xlab("Hour") + ylab("Temperature (C)") + 
-   coord_cartesian(ylim = c(4, 24)) + theme_minimal() 
-
 ```
 
 Now for relative humidity
@@ -406,15 +377,10 @@ Now for relative humidity
 ```{r diff visuals RH}
 
 ##difference plots
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffRH17m16), group=landuse)) + 
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffRH), group=landuse)) + 
   geom_line(aes(color=landuse), size=1) + ggtitle("2017 Minus 2016 Relative Humidity by Land Use") + 
   xlab("Hour") + ylab("RH difference Difference (%)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-10, 18))+ theme_minimal() 
-
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffRH17m17s), group=landuse)) + 
-  geom_line(aes(color=landuse), size=1) + ggtitle("2017 Minus Simulated 2017 Relative Humidity by Land Use") + 
-  xlab("Hour") + ylab("RH difference Difference (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
-   coord_cartesian(ylim = c(-10, 18))+ theme_minimal() 
+   coord_cartesian(ylim = c(-15, 5))+ theme_minimal() 
 
 
 
@@ -429,25 +395,15 @@ ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanRH17), group=landuse)) +
   xlab("Hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
    coord_cartesian(ylim = c(0, 100))+ theme_minimal() 
 
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanRH17s), group=landuse)) + 
-  geom_line(aes(color=landuse), size=1) + ggtitle("Simulated 2017 Relative Humidity by Land Use") + 
-  xlab("Hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
-   coord_cartesian(ylim = c(0, 100))+ theme_minimal() 
-
 ```
 
 Now for wind speed
 
 ```{r diff visuals wind speed}
 #difference plots
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS17m16), group=landuse)) + 
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS), group=landuse)) + 
   geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus 2016 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind Speed difference Difference (m/s)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 5))+ theme_minimal() 
-
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS17m17s), group=landuse)) + 
-  geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus Simulated 2017 Wind Speed by Land Use") + 
-  xlab("Hour") + ylab("Wind Speed difference Difference (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
    coord_cartesian(ylim = c(-1, 5))+ theme_minimal() 
 
 
@@ -462,42 +418,42 @@ ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp17), group=landuse)) +
   xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
    coord_cartesian(ylim = c(0, 18))+ theme_minimal() 
 
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanWSp17s), group=landuse)) + 
-  geom_line(aes(color=landuse), linewidth=1) + ggtitle("Simulated 2017 Wind Speed by Land Use") + 
-  xlab("Hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 18))+ theme_minimal() 
 
 ```
 
 ##Sea Level Pressure Difference
 ```{r diff slp across years}
 #difference plots
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSLP17m16), group=landuse)) + 
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSLP), group=landuse)) + 
   geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus 2016 Sea Level Pressure by Land Use") + 
   xlab("Hour") + ylab("Sea Level Pressure Difference")  + geom_hline(yintercept=0, linetype="dashed") + 
    coord_cartesian(ylim = c(-2.75, 0.25))+ theme_minimal() 
 
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSLP17m17s), group=landuse)) + 
-  geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus Simulated 2017 Sea Level Pressure by Land Use") + 
-  xlab("Hour") + ylab("Sea Level Pressure Difference") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-2.75, 0.25))+ theme_minimal() 
 
 
 ## Plots of the Difference in Difference
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSLP17m16Diff), group=landuse)) + 
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffoDiffSLP), group=landuse)) + 
   geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus 2016 Sea Level Pressure Difference (to Ocean) by Land Use") + 
   xlab("Hour") + ylab("Sea Level Pressure Difference Difference")  + geom_hline(yintercept=0, linetype="dashed") + 
    coord_cartesian(ylim = c(-1, 0.25))+ theme_minimal() 
 
-ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffSLP17m17sDiff), group=landuse)) + 
-  geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus Simulated 2017 Sea Level Pressure Difference (to Ocean) by Land Use") + 
-  xlab("Hour") + ylab("Sea Level Pressure Difference Difference") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 0.25))+ theme_minimal() 
 ```
-Interpretation (to keep track)
 
-The Diff values (to Ocean) show you how much lower/higher the pressure on land is to the pressure averaged over the Gulf. If the numbers are positive, that means that the land has higher pressure than the ocean, which means the wind should go from the land to the ocean. If you have negative values, that means the ocean has higher pressure than the land, which is aligned with a sea breeze
+## Low-level Clouds
+```{r diff in llc across time}
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffLLC), group=landuse)) + 
+  geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus 2016 low-level clouds by Land Use") + 
+  xlab("Hour") + ylab("Low Level Clouds Difference")  + geom_hline(yintercept=0, linetype="dashed") + theme_minimal() 
 
-So then when you compare the MHW to the non-MHW, if you have a higher value (less negative), that means during the MHW you should have a weaker sea breeze. If you have a negative value (more negative), that means during the MHW you should have a stronger sea breeze. 
+#Plots for each year for reference
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanLLC16), group=landuse)) + 
+  geom_line(aes(color=landuse), linewidth=1) + ggtitle("Low-level Clouds by Land Use 2016") + 
+  xlab("Hour") + ylab("% Low-level clouds") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() 
 
-So, despite our wind speed plots, we see a slightly stronger pressure differential from land to ocean during the simulated 2017 compared to the actual 2017 event, which should correspond to a weaker sea breeze during the MHW event, especially in the afternoon.
+ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(MeanLLC17), group=landuse)) + 
+  geom_line(aes(color=landuse), linewidth=1) + ggtitle("Low-level Clouds by Land Use 2017") + 
+  xlab("Hour") + ylab("% Low-level clouds") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() 
+
+```

@@ -19,3 +19,15 @@
 *.nc
 02Code/02EDA/.RData
 /03ProcessedData/LargeFiles
+03ProcessedData/Dist2Ocean_2016_0.csv
+03ProcessedData/Dist2Ocean_2016_1.csv
+03ProcessedData/Dist2Ocean_2016_2.csv
+03ProcessedData/Dist2Ocean_2017_0.csv
+03ProcessedData/Dist2Ocean_2017_1.csv
+03ProcessedData/Dist2Ocean_2017_2.csv
+03ProcessedData/HourlyMeans_2016_0.csv
+03ProcessedData/HourlyMeans_2016_1.csv
+03ProcessedData/HourlyMeans_2016_2.csv
+03ProcessedData/HourlyMeans_2017_0.csv
+03ProcessedData/HourlyMeans_2017_1.csv
+03ProcessedData/HourlyMeans_2017_2.csv
