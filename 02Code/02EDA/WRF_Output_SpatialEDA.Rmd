@@ -53,8 +53,8 @@ LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
 
 #distance from ocean pixels
-Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2016_0.csv")
-Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2017_0.csv")
+Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016_0.csv")
+Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017_0.csv")
 
 ##combine
 HourlyMeans16_0$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16_0$lat & Dists16$long == HourlyMeans16_0$lon]
@@ -405,18 +405,16 @@ ggplot(HourlyMeans17_wb[HourlyMeans17_wb$hour > 8 & HourlyMeans17_wb$region != 0
 ```
 
 #Next step
-Now I would look at the three boxes comparing MHW to non-MHW both ways
 
-I suspect you will see a bigger difference between the two 2017 runs for box 2, where the wind probably has to go through the city and is disrupted, compared to what you see in the boxes on either side of the city 
-
-Note, all of these are labelled as crop-ish land use
+Should probably make this more sophisticated by handling the simulations differently too, right now they all are just thrown in together 
 
 ```{r reformat to compare across years}
 
 #for final storage matrix
-colnms <- c("Hour", "Box", "Temp16", "Temp17", "Temp17s", "TempDiff17m16", "TempDiff17m17s", 
-            "RelHum16", "RelHum17", "RelHum17s", "HumDiff17m16", "HumDiff17m17s",
-            "WindSpeed10m16", "WindSpeed10m17", "WindSpeed10m17s", "WSDiff17m16", "WSDiff17m17s")
+colnms <- c("Hour", "Box", "Temp16", "Temp17", "TempDiff",
+            "RelHum16", "RelHum17", "HumDif17m16",
+            "WindSpeed10m16", "WindSpeed10m17", "WSDiff", 
+            "LowLvlCl16", "LowLvlCl17", "LLCDiff")
 
 #Create df
 BoxMeans <- as.data.frame(matrix(0, nrow = 24*3, ncol=length(colnms)))
@@ -424,46 +422,117 @@ names(BoxMeans) <- colnms
 
 iter <- 1
 
-for (h in c(0:23)){ #hours
-  
-  for (b in c(1:3)){ #boxes
-    
-    BoxMeans$Hour[iter] <- h
-    BoxMeans$Box[iter] <- b
-    
-    #############Temperature
-    BoxMeans$Temp16[iter] <- mean(HourlyMeans16_wBoxes$X2mTemp[HourlyMeans16_wBoxes$hour == h & HourlyMeans16_wBoxes$Box == b])
-    BoxMeans$Temp17[iter] <- mean(HourlyMeans17_wBoxes$X2mTemp[HourlyMeans17_wBoxes$hour == h & HourlyMeans17_wBoxes$Box == b])
-    BoxMeans$Temp17s[iter] <- mean(HourlyMeans17s_wBoxes$X2mTemp[HourlyMeans17s_wBoxes$hour == h & HourlyMeans17s_wBoxes$Box == b])
-    
-    #Calculate the difference
-    BoxMeans$TempDiff17m16[iter] <- BoxMeans$Temp17[iter] - BoxMeans$Temp16[iter]
-    BoxMeans$TempDiff17m17s[iter] <- BoxMeans$Temp17[iter] - BoxMeans$Temp17s[iter]
-    
-    ###############Humidity
-    BoxMeans$RelHum16[iter] <- mean(HourlyMeans16_wBoxes$RelHumid[HourlyMeans16_wBoxes$hour == h & HourlyMeans16_wBoxes$Box == b])
-    BoxMeans$RelHum17[iter] <- mean(HourlyMeans17_wBoxes$RelHumid[HourlyMeans17_wBoxes$hour == h & HourlyMeans17_wBoxes$Box == b])
-    BoxMeans$RelHum17s[iter] <- mean(HourlyMeans17s_wBoxes$RelHumid[HourlyMeans17s_wBoxes$hour == h & HourlyMeans17s_wBoxes$Box == b])
-    
-    #Calculate the difference
-    BoxMeans$HumDiff17m16[iter] <- BoxMeans$RelHum17[iter] - BoxMeans$RelHum16[iter]
-    BoxMeans$HumDiff17m17s[iter] <- BoxMeans$RelHum17[iter] - BoxMeans$RelHum17s[iter]
-    
-    
-    #################Wind Speed
-    BoxMeans$WindSpeed10m16[iter] <- mean(HourlyMeans16_wBoxes$WindSpeed_10m[HourlyMeans16_wBoxes$hour == h & HourlyMeans16_wBoxes$Box == b])
-    BoxMeans$WindSpeed10m17[iter] <- mean(HourlyMeans17_wBoxes$WindSpeed_10m[HourlyMeans17_wBoxes$hour == h & HourlyMeans17_wBoxes$Box == b])
-    BoxMeans$WindSpeed10m17s[iter] <- mean(HourlyMeans17s_wBoxes$WindSpeed_10m[HourlyMeans17s_wBoxes$hour == h & HourlyMeans17s_wBoxes$Box == b])
-    
-    #Calculate the difference
-    BoxMeans$WSDiff17m16[iter] <- BoxMeans$WindSpeed10m17[iter] - BoxMeans$WindSpeed10m16[iter]
-    BoxMeans$WSDiff17m17s[iter] <- BoxMeans$WindSpeed10m17[iter] - BoxMeans$WindSpeed10m17s[iter]
-    
-    #increase the iterator
-    iter <- iter + 1
-  }
-  
-}
+BM16 <- HourlyMeans16_wb %>% 
+  summarize(MeanTemp16 = mean(T2),
+            MeanRH16 = mean(rh2),
+            MeanWspd16 = mean(wspd10),
+            MeanLLC16 = mean(llc), .by=c("hour", "region", "sim"))
 
+BM17 <- HourlyMeans17_wb %>% 
+  summarize(MeanTemp17 = mean(T2),
+            MeanRH17 = mean(rh2),
+            MeanWspd17 = mean(wspd10),
+            MeanLLC17 = mean(llc), .by=c("hour", "region", "sim"))
+
+BoxMeans <- BM17 %>% left_join(BM16, by = c('hour', 'region', 'sim')) %>%
+  mutate(TempDiff = MeanTemp17 - MeanTemp16,
+         RHDiff = MeanRH17 - MeanRH16,
+         WspdDiff = MeanWspd17 - MeanWspd16,
+         LLCDiff = MeanLLC17 - MeanLLC17)
+
+
+```
+
+
+##Difference Visuals
+```{r diff visuals temp}
+
+###difference plots
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(TempDiff), group=sim)) + 
+  geom_line(aes(color=sim), size=1) + ggtitle("2017 Minus 2016 Temperatures by Simulation") + 
+  xlab("hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-1, 2)) + theme_minimal() 
+
+
+####Simple figures to make sure the individual averages over time are reasonable
+
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanTemp16-273.15), group=sim)) + 
+  geom_line(aes(color=sim), size=1) + ggtitle("2016 Temperatures by Simulation") + 
+  xlab("hour") + ylab("Temperature (C)") + 
+   coord_cartesian(ylim = c(4, 24)) + theme_minimal() 
+
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanTemp17-273.15), group=sim)) + 
+  geom_line(aes(color=sim), size=1) + ggtitle("2017 Temperatures by Simulation") + 
+  xlab("hour") + ylab("Temperature (C)") + 
+   coord_cartesian(ylim = c(4, 24)) + theme_minimal() 
+
+```
+
+Now for relative humidity
+
+```{r diff visuals RH}
+
+##difference plots
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(RHDiff), group=sim)) + 
+  geom_line(aes(color=sim), size=1) + ggtitle("2017 Minus 2016 Relative Humidity by Simulation") + 
+  xlab("hour") + ylab("RH difference Difference (%)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-15, 5))+ theme_minimal() 
+
+
+
+###individual plots for each year to make sure they are reasonable
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanRH16), group=sim)) + 
+  geom_line(aes(color=sim), size=1) + ggtitle("2016 Relative Humidity by Simulation") + 
+  xlab("hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
+   coord_cartesian(ylim = c(0, 100))+ theme_minimal() 
+
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanRH17), group=sim)) + 
+  geom_line(aes(color=sim), size=1) + ggtitle("2017 Relative Humidity by Simulation") + 
+  xlab("hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
+   coord_cartesian(ylim = c(0, 100))+ theme_minimal() 
+
+```
+
+Now for wind speed
+
+```{r diff visuals wind speed}
+#difference plots
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(WspdDiff), group=sim)) + 
+  geom_line(aes(color=sim), linewidth=1) + ggtitle("2017 Minus 2016 Wind Speed by Simulation") + 
+  xlab("hour") + ylab("Wind Speed difference Difference (m/s)")  + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(-1, 5))+ theme_minimal() 
+
+
+###individual plots for each year to make sure they make sense
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanWspd16), group=sim)) + 
+  geom_line(aes(color=sim), linewidth=1) + ggtitle("2016 Wind Speed by Simulation") + 
+  xlab("hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 18))+ theme_minimal() 
+
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanWspd17), group=sim)) + 
+  geom_line(aes(color=sim), linewidth=1) + ggtitle("2017 Wind Speed by Simulation") + 
+  xlab("hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 18))+ theme_minimal() 
+
+
+```
+
+
+## Low-level Clouds
+```{r diff in llc across time}
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(LLCDiff), group=sim)) + 
+  geom_line(aes(color=sim), linewidth=1) + ggtitle("2017 Minus 2016 low-level clouds by Simulation") + 
+  xlab("hour") + ylab("Low Level Clouds Difference")  + geom_hline(yintercept=0, linetype="dashed") + theme_minimal() 
+
+#Plots for each year for reference
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanLLC16), group=sim)) + 
+  geom_line(aes(color=sim), linewidth=1) + ggtitle("Low-level Clouds by Simulation 2016") + 
+  xlab("hour") + ylab("% Low-level clouds") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() 
+
+ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanLLC17), group=sim)) + 
+  geom_line(aes(color=sim), linewidth=1) + ggtitle("Low-level Clouds by Simulation 2017") + 
+  xlab("hour") + ylab("% Low-level clouds") + geom_hline(yintercept=0, linetype="dashed") + 
+   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() 
 
 ```
