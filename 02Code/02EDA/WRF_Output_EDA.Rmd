@@ -58,8 +58,8 @@ LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
 
 #distance from ocean pixels
-Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016_0.csv")
-Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017_0.csv")
+Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2016_0.csv")
+Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2017_0.csv")
 
 ##combine
 HourlyMeans16_0$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16_0$lat & Dists16$long == HourlyMeans16_0$lon]
@@ -404,7 +404,7 @@ Now for wind speed
 ggplot(HourlyMean_byLU, aes(x=as.factor(Hour), y=(DiffWS), group=landuse)) + 
   geom_line(aes(color=landuse), linewidth=1) + ggtitle("2017 Minus 2016 Wind Speed by Land Use") + 
   xlab("Hour") + ylab("Wind Speed difference Difference (m/s)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 5))+ theme_minimal() 
+   coord_cartesian(ylim = c(-1, 1))+ theme_minimal() 
 
 
 ###individual plots for each year to make sure they make sense

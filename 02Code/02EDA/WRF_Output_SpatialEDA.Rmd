@@ -53,8 +53,8 @@ LU_dict$New_Name <- NewLUs
 LU_dict$New_Num <- NewLU_nums
 
 #distance from ocean pixels
-Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean_2016_0.csv")
-Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean_2017_0.csv")
+Dists16 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2016_0.csv")
+Dists17 <- read.csv("../../03ProcessedData/Dist2Ocean/Dist2Ocean_2017_0.csv")
 
 ##combine
 HourlyMeans16_0$Dist2Ocean <- Dists16$Dist2Ocean[Dists16$lat == HourlyMeans16_0$lat & Dists16$long == HourlyMeans16_0$lon]
@@ -354,9 +354,10 @@ HourlyMeans17_wb <- bind_rows(HourlyMeans17_0wb, HourlyMeans17_1wb, HourlyMeans1
 Create simple plots of temperature, relative humidity, and wind speed over time for crop pixels within the three boxes
 
 ```{r basic plots}
-##Box 1 is bottom left
-##Box 2 is top left
-##Box 3 is top right
+##Box 1 is bottom left - should be green
+##Box 2 is top left - should be orange
+##Box 3 is top right - should be blue
+##Box 0 is the overall region - should be red or non-existent
 
 ###################################Temperature
 ##2016 Basic Temperature Plot
@@ -434,13 +435,13 @@ names(BoxMeans) <- colnms
 
 iter <- 1
 
-BM16 <- HourlyMeans16_wb %>% 
+BM16 <- HourlyMeans16_wb %>%  filter(region != 0) %>%
   summarize(MeanTemp16 = mean(T2),
             MeanRH16 = mean(rh2),
             MeanWspd16 = mean(wspd10),
             MeanLLC16 = mean(llc), .by=c("hour", "region", "sim"))
 
-BM17 <- HourlyMeans17_wb %>% 
+BM17 <- HourlyMeans17_wb %>% filter(region != 0) %>%
   summarize(MeanTemp17 = mean(T2),
             MeanRH17 = mean(rh2),
             MeanWspd17 = mean(wspd10),
@@ -463,7 +464,7 @@ BoxMeans <- BM17 %>% left_join(BM16, by = c('hour', 'region', 'sim')) %>%
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(TempDiff), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Minus 2016 Temperatures by Region") + 
   xlab("hour") + ylab("Temperature Difference (C)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 2)) + theme_minimal() 
+   coord_cartesian(ylim = c(-1, 2)) + theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 
 ####Simple figures to make sure the individual averages over time are reasonable
@@ -471,12 +472,12 @@ ggplot(BoxMeans, aes(x=as.factor(hour), y=(TempDiff), group=region)) +
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanTemp16-273.15), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2016 Temperatures by Region") + 
   xlab("hour") + ylab("Temperature (C)") + 
-   coord_cartesian(ylim = c(4, 24)) + theme_minimal() 
+   coord_cartesian(ylim = c(4, 24)) + theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanTemp17-273.15), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Temperatures by Region") + 
   xlab("hour") + ylab("Temperature (C)") + 
-   coord_cartesian(ylim = c(4, 24)) + theme_minimal() 
+   coord_cartesian(ylim = c(4, 24)) + theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ```
 
@@ -488,7 +489,7 @@ Now for relative humidity
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(RHDiff), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Minus 2016 Relative Humidity by Region") + 
   xlab("hour") + ylab("RH difference Difference (%)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-15, 5))+ theme_minimal() 
+   coord_cartesian(ylim = c(-15, 5))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 
 
@@ -496,12 +497,12 @@ ggplot(BoxMeans, aes(x=as.factor(hour), y=(RHDiff), group=region)) +
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanRH16), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2016 Relative Humidity by Region") + 
   xlab("hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
-   coord_cartesian(ylim = c(0, 100))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 100))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanRH17), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Relative Humidity by Region") + 
   xlab("hour") + ylab("RH (%)") + geom_hline(yintercept=0, linetype="dashed")  + 
-   coord_cartesian(ylim = c(0, 100))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 100))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ```
 
@@ -512,19 +513,19 @@ Now for wind speed
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(WspdDiff), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Minus 2016 Wind Speed by Region") + 
   xlab("hour") + ylab("Wind Speed difference Difference (m/s)")  + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(-1, 5))+ theme_minimal() 
+   coord_cartesian(ylim = c(-1, 1))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 
 ###individual plots for each year to make sure they make sense
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanWspd16), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2016 Wind Speed by Region") + 
   xlab("hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 18))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 18))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanWspd17), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Wind Speed by Region") + 
   xlab("hour") + ylab("Wind speed (m/s)") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 18))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 18))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 
 ```
@@ -534,17 +535,17 @@ ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanWspd17), group=region)) +
 ```{r diff in llc across time}
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(LLCDiff), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("2017 Minus 2016 low-level clouds by Region") + 
-  xlab("hour") + ylab("Low Level Clouds Difference")  + geom_hline(yintercept=0, linetype="dashed") + theme_minimal() 
+  xlab("hour") + ylab("Low Level Clouds Difference")  + geom_hline(yintercept=0, linetype="dashed") + theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 #Plots for each year for reference
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanLLC16), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("Low-level Clouds by Region 2016") + 
   xlab("hour") + ylab("% Low-level clouds") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ggplot(BoxMeans, aes(x=as.factor(hour), y=(MeanLLC17), group=region)) + 
   geom_point(aes(color=as.factor(region))) + ggtitle("Low-level Clouds by Region 2017") + 
   xlab("hour") + ylab("% Low-level clouds") + geom_hline(yintercept=0, linetype="dashed") + 
-   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() 
+   coord_cartesian(ylim = c(0, 0.1))+ theme_minimal() + scale_color_manual(values=c("darkolivegreen3", "darkorange1", "deepskyblue4"))
 
 ```
